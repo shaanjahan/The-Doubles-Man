@@ -1,0 +1,12 @@
+# Secrets — never commit
+.env
+.env.*
+*.key
+supabase/.env
+supabase/.temp/
+
+# OS / editor junk
+.DS_Store
+
+# Node
+node_modules/
