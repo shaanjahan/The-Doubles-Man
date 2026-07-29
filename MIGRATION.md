@@ -145,22 +145,42 @@ Build order:
    row-locking `SECURITY DEFINER` RPCs (`finalize_round_apply`,
    `business_buy_apply`, `business_collect_apply`) so concurrent calls can't
    double-grant/double-spend.
-3. **NEXT SESSION** — rewrite the four raw-client-write functions as real Edge
-   Functions, same shape as `finalize-round`: **`buyUpgrade`**,
-   **`claimDaily`**, **`openSaucePack`**, **`grantIAP`** (the real
-   Apple-verified one, not the web-preview one — that one gets deleted).
-   Needs a server-side copy of cost/reward tables currently trusted
-   client-side from `catalog.js` (port `catalog.js` into a `_shared` module
-   first, mirroring how `_shared/businesses.ts` was done).
-   - **Achievement/mission folding decision:** `finalize-round` returns
-     authoritative player state, but `usePlayer.js` *still* does a follow-up
-     raw `Player.update` right after, to apply mission/achievement grants
-     (`bumpMissions` / `evaluateAchievements`, both client-trusted reward
-     values). That raw write is a known **temporary** hole. Decision: fold
-     mission/achievement evaluation **server-side as part of this batch** —
-     evaluate and grant them inside the relevant Edge Functions (or a shared
-     helper `finalize-round` also calls), then delete the client-side grant
-     path. Don't leave it as a client raw-write once the batch lands.
+3. **IN PROGRESS (batch 2, 2026-07-29)** — rewrite the four raw-client-write
+   functions as real Edge Functions, same shape as `finalize-round`. Server-side
+   cost/reward tables live in `_shared/catalog.ts` (mirrors `catalog.js`; grows
+   per function).
+   - ✅ **`buy-upgrade`** (done) — cost `floor(baseCost·growth^level)` under lock
+     (`upgrade_buy_apply`), maxLevel + affordability enforced. No achievement
+     logic (buyUpgrade moves no achievement stat).
+   - ✅ **`claim-daily`** (done) — ports the GAME-HOOK claimDaily
+     (`src/lib/game/usePlayer.js`) against the Player model, **not** the dead
+     `claim-daily-reward`/`PlayerProfile` path (consistent with audit issue #1).
+     UTC calendar day via `(now() at time zone 'utc')::date`, gap-reset streak,
+     catalog.js `DAILY_REWARDS`, level-up on xp rewards. **First use of the
+     shared achievement evaluator** (`ACHIEVEMENTS` + `evaluateAchievements` in
+     `_shared/catalog.ts`) via the reusable idempotent `achievements_apply` RPC.
+   - ⏳ **`openSaucePack`** — next. Reuse the achievement evaluator
+     (`sauce_collector`).
+   - ⏳ **`grantIAP`** — the real Apple-verified one, not the web-preview one
+     (that one gets deleted).
+   - ⏳ **`finalize-round` achievement/mission retrofit** — LAST in this batch,
+     as its **own** function (own plan/deploy/test/commit, not deferred to a
+     later session). `usePlayer.js` still does a follow-up raw `Player.update`
+     after finalize-round to apply mission/achievement grants
+     (`bumpMissions` / `evaluateAchievements`). Move that server-side into
+     `finalize-round` (reuse `achievements_apply`; missions still need a
+     server-side `bumpMissions` equivalent), then delete the client raw-write.
+   - **Achievement folding sequencing (decided 2026-07-29):** build the shared
+     evaluator in claimDaily (done) → reuse in openSaucePack → retrofit
+     finalize-round last. Not deferred to a follow-up session.
+
+**Tracked follow-ups (not solved yet):**
+- **Daily counter reset needs its own home, likely inside `finalize-round`.**
+  The client `claimDaily` also reset today's/mission counters (`servedToday`,
+  `dailyMissions`, etc.) on day-change; that was deliberately kept OUT of the
+  `claim-daily` port (reset is triggered by the first action of any day, not by
+  claiming). Same treatment as the finalize-round achievement retrofit — its own
+  work, not solved tonight.
 4. ✅ **Hourly earnings cap** wired into `finalize-round` (done 2026-07-28) —
    enforced inside `finalize_round_apply` against the `earnings_log` table
    (cap scope = clamped gameplay coins only; NOT applied to idle-business
