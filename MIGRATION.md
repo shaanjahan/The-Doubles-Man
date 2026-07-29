@@ -161,8 +161,12 @@ Build order:
      `_shared/catalog.ts`) via the reusable idempotent `achievements_apply` RPC.
    - ⏳ **`openSaucePack`** — next. Reuse the achievement evaluator
      (`sauce_collector`).
-   - ⏳ **`grantIAP`** — the real Apple-verified one, not the web-preview one
-     (that one gets deleted).
+   - ✅ **`apple-iap-verify`** (done, backend) — real Apple-verified IAP grant.
+     Verifies the signed JWS (`app-store-server-api@1.0.0`, cert chain +
+     signature) + bundle id; grants exactly-once via `apple_iap_grant_apply`
+     (idempotency insert + currency grant in ONE transaction, keyed on the Apple
+     transactionId). `appAccountToken` verify-if-present. Web-preview grantIAP
+     simulator deleted. E2E sandbox purchase still pending (see follow-ups).
    - ⏳ **`finalize-round` achievement/mission retrofit** — LAST in this batch,
      as its **own** function (own plan/deploy/test/commit, not deferred to a
      later session). `usePlayer.js` still does a follow-up raw `Player.update`
@@ -181,6 +185,24 @@ Build order:
   `claim-daily` port (reset is triggered by the first action of any day, not by
   claiming). Same treatment as the finalize-round achievement retrofit — its own
   work, not solved tonight.
+- **`appAccountToken` binding — TWO-PART, both sides required (not a backend
+  TODO).** It is currently wired NOWHERE (confirmed in the real source: the
+  native `purchase()` doesn't set it, and the backend didn't check it). The
+  Supabase `apple-iap-verify` now verifies it *if present* but does not require
+  it. To actually bind purchases to a player (needed for App Store Server
+  Notifications V2 / refunds, which arrive with no user JWT):
+  (1) **native side** — the wrapper's `NativeIAP.purchase()` must set
+  `appAccountToken` = the player's auth user id at purchase time (needs a native
+  build); and only after that, (2) **backend side** — flip `apple-iap-verify`
+  from verify-if-present to **require-and-match**. Part 2 is worthless without
+  part 1; don't ship the backend requirement until the native build sets it.
+- **IAP end-to-end is UNTESTABLE without the native app + Apple sandbox.** Tests
+  done here cover JWS-signature rejection, forged-JWT rejection, and the
+  exactly-once grant (via direct RPC). The true path — a real Apple-signed JWS →
+  verify → grant — can only be exercised by a **sandbox StoreKit purchase in
+  TestFlight through the WKWebView wrapper**. Manual step for the testing phase;
+  also confirm `APPLE_BUNDLE_ID` matches the shipped app (the check defaults to
+  the Base44-generated bundle id and will reject every real purchase if wrong).
 4. ✅ **Hourly earnings cap** wired into `finalize-round` (done 2026-07-28) —
    enforced inside `finalize_round_apply` against the `earnings_log` table
    (cap scope = clamped gameplay coins only; NOT applied to idle-business
@@ -236,9 +258,11 @@ The frontend cutover (pointing `base44Client.js` at Supabase) is **blocked on
 all** of the following, not just grantIAP. Do not schedule the swap until every
 line here is cleared:
 
-1. **`grantIAP` / `apple-iap-verify` — IN PROGRESS.** The real Apple-verified
-   IAP grant (Supabase port of `apple-iap-verify`). Highest-stakes function;
-   consumables have no restore path. Not yet written/deployed.
+1. **`grantIAP` / `apple-iap-verify` — BACKEND DONE, E2E PENDING.** The real
+   Apple-verified IAP grant is written, deployed, and tested for JWS-rejection,
+   forged-JWT, and exactly-once grant (idempotent, no double-grant on replay).
+   STILL REQUIRED before relying on it: a sandbox TestFlight purchase E2E, and
+   confirming `APPLE_BUNDLE_ID` matches the shipped app (see follow-ups).
 2. **`finalize-round` achievement/mission retrofit — NOT STARTED.** The client
    still does a raw `Player.update` after finalize-round for mission/achievement
    grants; must move server-side (its own plan/deploy/test/commit) before the

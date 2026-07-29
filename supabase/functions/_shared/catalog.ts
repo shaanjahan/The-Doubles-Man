@@ -160,7 +160,13 @@ function randomSauceId(): string {
   return (pool[Math.floor(Math.random() * pool.length)] || MAGIC_SAUCES[0]).id;
 }
 
+// Roll n sauce ids (shared by the mystery pack and IAP sauce grants, so the
+// drop logic never diverges).
+export function rollSauces(n: number): string[] {
+  return Array.from({ length: Math.max(0, n) }, () => randomSauceId());
+}
+
 // Roll one mystery pack (SAUCE_PACK_SIZE sauce ids).
 export function rollSaucePack(): string[] {
-  return Array.from({ length: SAUCE_PACK_SIZE }, () => randomSauceId());
+  return rollSauces(SAUCE_PACK_SIZE);
 }
