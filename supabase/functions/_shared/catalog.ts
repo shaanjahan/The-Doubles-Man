@@ -7,7 +7,8 @@
 //
 // This module grows as each function in the batch lands; every table added is
 // exercised by that function's tests. Currently: UPGRADES (buyUpgrade),
-// DAILY_REWARDS + ACHIEVEMENTS + evaluateAchievements (claimDaily).
+// DAILY_REWARDS + ACHIEVEMENTS + evaluateAchievements (claimDaily),
+// MAGIC_SAUCES + SAUCE_PACK_GEM_COST + rollSaucePack (openSaucePack).
 
 export interface Upgrade {
   id: string;
@@ -125,4 +126,41 @@ export function evaluateAchievements(
     }
   }
   return { grants, progressUpdates, newly };
+}
+
+// ---- Magic sauces / mystery pack (openSaucePack) ----
+// Mirrors catalog.js MAGIC_SAUCES (id + rarity only — backend doesn't need
+// names/images/effects). The gem price is the SauceShopSection PACK_COST,
+// pulled server-side here so the client can never set its own cost.
+export const SAUCE_PACK_GEM_COST = 15;
+export const SAUCE_PACK_SIZE = 3;
+
+export const MAGIC_SAUCES: { id: string; rarity: string }[] = [
+  { id: 'golden_tamarind',    rarity: 'Rare' },
+  { id: 'ghost_pepper',       rarity: 'Epic' },
+  { id: 'carnival_sauce',     rarity: 'Rare' },
+  { id: 'shadow_beni_spirit', rarity: 'Common' },
+  { id: 'lucky_sauce',        rarity: 'Common' },
+  { id: 'turbo_sauce',        rarity: 'Epic' },
+  { id: 'double_trouble',     rarity: 'Legendary' },
+  { id: 'pepper_fairy',       rarity: 'Common' },
+];
+
+// Faithful port of usePlayer.js randomSauceIdLite: rarity buckets then a
+// uniform pick within the bucket. Runs server-side now (the client can't be
+// trusted to roll its own loot).
+function randomSauceId(): string {
+  const r = Math.random();
+  let bucket: string;
+  if (r < 0.05) bucket = 'Legendary';
+  else if (r < 0.2) bucket = 'Epic';
+  else if (r < 0.45) bucket = 'Rare';
+  else bucket = 'Common';
+  const pool = MAGIC_SAUCES.filter((s) => s.rarity === bucket);
+  return (pool[Math.floor(Math.random() * pool.length)] || MAGIC_SAUCES[0]).id;
+}
+
+// Roll one mystery pack (SAUCE_PACK_SIZE sauce ids).
+export function rollSaucePack(): string[] {
+  return Array.from({ length: SAUCE_PACK_SIZE }, () => randomSauceId());
 }
