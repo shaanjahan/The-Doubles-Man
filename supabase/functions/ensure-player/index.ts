@@ -19,6 +19,29 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// snake_case DB row -> camelCase (top-level keys only), matching the player
+// contract every other function returns (finalize-round / manage-business / …).
+const toCamel = (s: string) => s.replace(/_([a-z])/g, (_m, c) => c.toUpperCase());
+function camelizeKeys(row: Record<string, any> | null): Record<string, any> {
+  const out: Record<string, any> = {};
+  if (!row) return out;
+  for (const k of Object.keys(row)) out[toCamel(k)] = row[k];
+  return out;
+}
+
+// Ensure the stats row exists, then return the player in the client contract:
+// camelCase + nested camelCase `stats` (so reload() has full state on load, not
+// zeroed stats).
+async function respondWithPlayer(
+  admin: any,
+  playerRow: Record<string, any>,
+  created: boolean,
+) {
+  const stats = await ensureStatsRow(admin, playerRow.id);
+  const player = { ...camelizeKeys(playerRow), stats: camelizeKeys(stats) };
+  return Response.json({ player, created });
+}
+
 Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
@@ -48,8 +71,7 @@ Deno.serve(async (req) => {
     if (selErr) throw selErr;
 
     if (existing) {
-      await ensureStatsRow(admin, existing.id);
-      return Response.json({ player: existing, created: false });
+      return await respondWithPlayer(admin, existing, false);
     }
 
     // 2. Try to create one.
@@ -70,34 +92,38 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (refetchErr) throw refetchErr;
         if (raceWinner) {
-          await ensureStatsRow(admin, raceWinner.id);
-          return Response.json({ player: raceWinner, created: false });
+          return await respondWithPlayer(admin, raceWinner, false);
         }
       }
       throw insErr;
     }
 
-    await ensureStatsRow(admin, created.id);
-    return Response.json({ player: created, created: true });
+    return await respondWithPlayer(admin, created, true);
   } catch (error) {
     console.error('ensure-player error:', error);
-    return Response.json(
-      { error: error?.message || String(error) },
-      { status: 500 }
-    );
+    const msg = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: msg }, { status: 500 });
   }
 });
 
 // Every player needs a matching player_stats row for finalize-round to
-// update. Idempotent — safe to call even if the row already exists.
-async function ensureStatsRow(admin: ReturnType<typeof createClient>, playerId: string) {
-  const { error } = await admin
+// update. Idempotent — safe to call even if the row already exists. Returns the
+// stats row (so the response can nest it as camelCase `stats`).
+async function ensureStatsRow(
+  admin: any,
+  playerId: string,
+): Promise<Record<string, any> | null> {
+  const { data, error } = await admin
     .from('player_stats')
     .insert({ player_id: playerId })
     .select()
     .maybeSingle();
-  // 23505 here just means the stats row already exists — fine, ignore.
+  if (!error && data) return data;
+  // 23505 here just means the stats row already exists — fine, read it back.
   if (error && error.code !== '23505') {
     console.error('ensureStatsRow error:', error);
   }
+  const { data: existing } = await admin
+    .from('player_stats').select('*').eq('player_id', playerId).maybeSingle();
+  return existing ?? null;
 }
