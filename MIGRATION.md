@@ -259,38 +259,45 @@ Plus the grant-bug fix and `leaderboard_entries` creation (see Schema section).
   `lvlReqs=[1,3,6,10,15,22,30]`. Server is authoritative; reconcile the client
   so the UI doesn't mispredict tier-ups.
 
-## Cutover readiness — BLOCKED (as of 2026-07-29)
+## Cutover readiness — BACKEND COMPLETE, cutover work remains (as of 2026-07-29)
 
-The frontend cutover (pointing `base44Client.js` at Supabase) is **blocked on
-all** of the following, not just grantIAP. Do not schedule the swap until every
-line here is cleared:
+**All backend Edge Functions are complete, deployed, and verified** as of
+tonight: `ensure-player`, `finalize-round` (incl. hourly cap + server-side
+achievements), `manage-business`, `buy-upgrade`, `claim-daily`,
+`open-sauce-pack`, `apple-iap-verify`. Plus the schema (grant fix,
+`leaderboard_entries`, `purchases`) and the shared modules
+(`_shared/businesses.ts`, `catalog.ts`, `purchaseProducts.ts`) and reusable RPCs
+(`achievements_apply`, etc.).
 
-1. **`grantIAP` / `apple-iap-verify` — BACKEND DONE, E2E PENDING.** The real
-   Apple-verified IAP grant is written, deployed, and tested for JWS-rejection,
-   forged-JWT, and exactly-once grant (idempotent, no double-grant on replay).
-   STILL REQUIRED before relying on it: a sandbox TestFlight purchase E2E, and
-   confirming `APPLE_BUNDLE_ID` matches the shipped app (see follow-ups).
-2. **Mission system — NOT STARTED (achievement half DONE).** Achievements are
-   now granted server-side by finalize-round. **Missions** are not: they're
-   initialized/rotated client-side (`defaultMissions` from the pools) into jsonb
-   columns that are NOT client-writable in Supabase, so after the swap missions
-   would be empty and never progress. The whole mission system (init + rotation
-   + `bumpMissions`) must move server-side as one unit — folded into the
-   daily-reset follow-up below. Cutover is blocked until that lands.
-3. **`base44Client.js` swap code — NOT WRITTEN.** The actual adapter pointing
-   the single SDK entrypoint at Supabase (auth + `functions.invoke` +
-   remaining reads) does not exist yet. The migration's whole "flip one config"
-   premise depends on this and it hasn't been built.
-4. **Netlify deployment — NOT CONFIRMED LIVE.** DNS steps are documented, but
-   the site has not been confirmed actually serving at `thedoublesman.com`.
-5. **Native wrapper WKWebView URL — UNRESOLVED.** Still unconfirmed whether the
-   shipped iOS wrapper's WKWebView loads `thedoublesman.com` or a Base44 domain.
-   If it's still Base44, one more native build (its own review clock) is needed
-   to repoint it before backend changes are visible to the app. This has been
-   open since the start of the project.
+**Backend-complete ≠ cutover-ready.** The frontend cutover (pointing
+`base44Client.js` at Supabase) is still blocked. Next session works the cutover
+items **in this order** — chosen so nothing does throwaway work:
 
-Only ensure-player / finalize-round / manage-business / buy-upgrade /
-claim-daily / open-sauce-pack are done. Backend-complete ≠ cutover-ready.
+1. **Resolve the native wrapper's WKWebView URL — DO FIRST.** It's not code and
+   depends on nothing else. Confirm whether the shipped iOS wrapper loads
+   `thedoublesman.com` or a Base44 domain. If still Base44, one more native
+   build (its own review clock) is needed to repoint it — start that clock ASAP
+   since everything visible-to-the-app waits on it.
+2. **Bring the real frontend into this repo — BEFORE any more local-only edits.**
+   All frontend changes so far (removing `buySauceWithCoins`, the web-preview
+   `grantIAP` simulator, and the client `evaluateAchievements` in `finalizeRound`)
+   were made to the **untracked** `doubles-dash-trini/` export and are local-only
+   — they'll be lost unless the frontend is version-controlled here first. Do
+   this before writing more client changes (mission system, swap adapter).
+3. **Mission system + daily-reset (one unit).** Server-side mission init
+   (`defaultMissions` from the pools), rotation on day/week/month rollover, and
+   `bumpMissions` wired into `finalize-round`, together with the daily/weekly/
+   monthly counter reset. Missions can't work server-side without all of this
+   (the jsonb columns aren't client-writable). Last backend blocker.
+4. **`base44Client.js` swap adapter.** The adapter pointing the single SDK
+   entrypoint at Supabase (auth + `functions.invoke` + remaining reads). The
+   "flip one config" premise depends on this; not written yet.
+5. **Netlify deploy.** Confirm the site actually serves at `thedoublesman.com`
+   (DNS steps documented, not yet confirmed live).
+
+**Testing-phase manual step (not a code blocker):** grantIAP end-to-end — a
+sandbox TestFlight purchase through the wrapper (real Apple JWS → verify →
+grant), and confirm `APPLE_BUNDLE_ID` matches the shipped app. See follow-ups.
 
 ## StoreKit — rules that must survive the port
 
