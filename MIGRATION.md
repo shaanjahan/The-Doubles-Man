@@ -321,9 +321,70 @@ items **in this order** — chosen so nothing does throwaway work:
    Verified: 8/8 original regression unchanged + 10/10 mission tests. **This was
    the last backend blocker — the backend is now cutover-ready.** (Remaining:
    `trackInvite`'s invite mission — a small separate follow-up, not a blocker.)
-4. **`base44Client.js` swap adapter.** The adapter pointing the single SDK
-   entrypoint at Supabase (auth + `functions.invoke` + remaining reads). The
-   "flip one config" premise depends on this; not written yet.
+4. **`base44Client.js` swap adapter — IN PROGRESS.** Point the single SDK
+   entrypoint at Supabase. NOTE: the "flip one config" premise was **incomplete**
+   — a full trace of every `base44.*` call site (below) found the economy
+   mutations don't go through `functions.invoke` (they're client raw writes that
+   must be rewired), plus three un-ported backend gaps and an auth
+   re-architecture. Three swap-prerequisite gap functions are now **DONE**:
+   - ✅ **`equip-sauce`** (`52f01ec`) — ownership-checked equip; protects
+     finalize-round's reward ceiling (equipped_sauces must not be client-writable).
+   - ✅ **`track-invite`** (`d785167`) — `invited_friends` + the `wm_invite_2` mission.
+   - ✅ **`delete-account`** (`c1dd949`) — Apple 5.1.1(v); deletes the auth user
+     (cascades game data + leaderboard), RETAINS + de-identifies purchases
+     (`purchases.owner_id` → `ON DELETE SET NULL`).
+
+   **Full `base44.*` call-site trace → Supabase mapping** (from
+   `src/`, confirmed against the real code):
+
+   *Auth (`base44.auth.*`) — a genuine re-architecture, not just endpoints:*
+   | Base44 | Supabase | Note |
+   |---|---|---|
+   | `me()` | `auth.getUser()` | return shape change |
+   | `logout(redirect)` | `auth.signOut()` + manual redirect | Base44 takes a redirect arg |
+   | `loginViaEmailPassword(email,pw)` | `signInWithPassword({email,password})` | signature |
+   | `register({email,password})` | `signUp({email,password})` | + confirm flow |
+   | `loginWithProvider("google"/"apple",redirect)` | `signInWithOAuth({provider,options:{redirectTo}})` | needs providers configured (3e) |
+   | `verifyOtp({email,otpCode})` | `verifyOtp({email,token,type})` | signature |
+   | `resendOtp(email)` | `signInWithOtp({email})` / `resend(...)` | signature |
+   | `setToken(access_token)` | `setSession({access_token,refresh_token})` | Supabase needs the refresh token too; `verifyOtp` returns a full session, so `setToken` likely disappears |
+   | `resetPasswordRequest(email)` | `resetPasswordForEmail(email,{redirectTo})` | |
+   | `resetPassword({resetToken,newPassword})` | session-from-link → `updateUser({password})` | flow differs |
+   | `redirectToLogin(redirect)` | app-level navigate to `/login` | no direct equivalent |
+
+   *Entities (`base44.entities.*`):*
+   | Base44 | Supabase |
+   |---|---|
+   | `Player.list(...)` + `Player.create(...)` (reload) | call **`ensure-player`** + `from('players').select()` |
+   | `Player.update(id,{lastLoginAt})` | `last_login_at` not client-writable → drop or fold into `ensure-player` |
+   | `Player.update(next, sanitizePatch)` (persist) | `from('players').update(...)` **cosmetic columns only** |
+   | `LeaderboardEntry.filter({category},'-score',200)` | `from('leaderboard_entries').select().eq('category',…).order('score',desc).limit(200)` |
+   | `PlayerProfile.*` | **dead** (see dead-code) |
+
+   *Functions (`base44.functions.invoke`):* `finalize-round` / `manage-business`
+   / `apple-iap-verify` → `supabase.functions.invoke` (same names). `delete-account`
+   → now ported. `create-checkout` / `claim-daily-reward` → dead (see dead-code).
+
+   *Client raw writes to REWIRE to `invoke` (they don't use invoke today):*
+   `buyUpgrade`→`buy-upgrade`, `claimDaily`→`claim-daily`,
+   `openSaucePack`→`open-sauce-pack`, `toggleEquipSauce`→`equip-sauce`,
+   `trackInvite`→`track-invite`. Cosmetic mutations (`setAvatar`,
+   `completeSetup`, `completeTutorial`) stay as direct `players` updates
+   (client-writable columns).
+
+   **Dead code to DELETE** (same treatment as `buySauceWithCoins` /
+   web-preview `grantIAP`): the entire `PlayerProfile` subsystem —
+   `src/lib/usePlayer.js` + the unrouted `Inventory`/`Game`/`Shop`/`DailyRewards`
+   pages + `claim-daily-reward`; and the `create-checkout` web-payments path
+   (the native app always uses `NativeIAP`).
+
+   **Also needed:** add `@supabase/supabase-js` dependency; replace
+   `app-params.js` (Base44 appId/token) with Supabase URL + anon key; configure
+   Supabase Apple + Google OAuth providers (3e, needs Apple credentials).
+
+   **Remaining sub-steps:** 3b adapter · 3c rewire `usePlayer.js` · 3d delete
+   dead code · 3e OAuth providers. Tested locally end-to-end with Base44 still
+   live before Netlify/DNS.
 5. **Netlify deploy.** Confirm the site actually serves at `thedoublesman.com`
    (DNS steps documented, not yet confirmed live).
 
