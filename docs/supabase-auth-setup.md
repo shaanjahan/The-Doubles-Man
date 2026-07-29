@@ -21,8 +21,17 @@ the emails must contain `{{ .Token }}`, not `{{ .ConfirmationURL }}`.
 confirmation-link line with the code:
 
 - **Confirm signup** (register): `Your verification code is: {{ .Token }}`
-- **Magic Link** (OTP login): `Your login code is: {{ .Token }}`
-- **Reset Password** (recovery): `Your password reset code is: {{ .Token }}`
+  (the Register page has a 6-digit code input).
+- **Magic Link** (OTP login): `Your login code is: {{ .Token }}` (only used if a
+  passwordless-login path is added; the current app confirms unverified signups
+  via the signup code).
+- **Reset Password** (recovery): **keep the LINK** — use `{{ .ConfirmationURL }}`,
+  NOT `{{ .Token }}`. The `/reset-password` page is a **link-landing** page (no
+  code input); it relies on the recovery link establishing a session
+  (`detectSessionInUrl`), then sets the new password. Ensure the link's redirect
+  lands on `https://<site>/reset-password` (covered by the redirect allow-list).
+  **NOTE:** an earlier version of this doc incorrectly said to use `{{ .Token }}`
+  here — if you set that, change it back to the link.
 
 **Dashboard → Authentication → Providers → Email:** ensure **"Confirm email"** is
 ON; leave **OTP length = 6** (the UI expects 6 digits), OTP expiry default (3600s).
