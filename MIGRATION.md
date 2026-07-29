@@ -230,6 +230,34 @@ Plus the grant-bug fix and `leaderboard_entries` creation (see Schema section).
   `lvlReqs=[1,3,6,10,15,22,30]`. Server is authoritative; reconcile the client
   so the UI doesn't mispredict tier-ups.
 
+## Cutover readiness — BLOCKED (as of 2026-07-29)
+
+The frontend cutover (pointing `base44Client.js` at Supabase) is **blocked on
+all** of the following, not just grantIAP. Do not schedule the swap until every
+line here is cleared:
+
+1. **`grantIAP` / `apple-iap-verify` — IN PROGRESS.** The real Apple-verified
+   IAP grant (Supabase port of `apple-iap-verify`). Highest-stakes function;
+   consumables have no restore path. Not yet written/deployed.
+2. **`finalize-round` achievement/mission retrofit — NOT STARTED.** The client
+   still does a raw `Player.update` after finalize-round for mission/achievement
+   grants; must move server-side (its own plan/deploy/test/commit) before the
+   swap, or the swap re-exposes that raw write.
+3. **`base44Client.js` swap code — NOT WRITTEN.** The actual adapter pointing
+   the single SDK entrypoint at Supabase (auth + `functions.invoke` +
+   remaining reads) does not exist yet. The migration's whole "flip one config"
+   premise depends on this and it hasn't been built.
+4. **Netlify deployment — NOT CONFIRMED LIVE.** DNS steps are documented, but
+   the site has not been confirmed actually serving at `thedoublesman.com`.
+5. **Native wrapper WKWebView URL — UNRESOLVED.** Still unconfirmed whether the
+   shipped iOS wrapper's WKWebView loads `thedoublesman.com` or a Base44 domain.
+   If it's still Base44, one more native build (its own review clock) is needed
+   to repoint it before backend changes are visible to the app. This has been
+   open since the start of the project.
+
+Only ensure-player / finalize-round / manage-business / buy-upgrade /
+claim-daily / open-sauce-pack are done. Backend-complete ≠ cutover-ready.
+
 ## StoreKit — rules that must survive the port
 
 - Native IAP goes through `window.NativeIAP` (injected by the wrapper) →
