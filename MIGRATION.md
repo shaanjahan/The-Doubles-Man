@@ -273,11 +273,21 @@ achievements), `manage-business`, `buy-upgrade`, `claim-daily`,
 `base44Client.js` at Supabase) is still blocked. Next session works the cutover
 items **in this order** — chosen so nothing does throwaway work:
 
-1. **Resolve the native wrapper's WKWebView URL — DO FIRST.** It's not code and
-   depends on nothing else. Confirm whether the shipped iOS wrapper loads
-   `thedoublesman.com` or a Base44 domain. If still Base44, one more native
-   build (its own review clock) is needed to repoint it — start that clock ASAP
-   since everything visible-to-the-app waits on it.
+1. ✅ **Native wrapper's WKWebView URL — RESOLVED (2026-07-29), favorably.**
+   Confirmed against the actual native source (`~/Desktop/The Doubles Man/`,
+   `ContentView.swift:63,91,109`): the WKWebView loads
+   `let appURL = URL(string: "https://thedoublesman.com")!` — the **custom
+   domain**, hardcoded and unconditional (no DEBUG/release override, only one
+   `appURL` definition). So **no new native build or App Store review is needed
+   for the backend cutover to take effect**; once the domain serves the new app
+   (Netlify, step 5), the migrated frontend + Supabase backend are live to the
+   app immediately. The long-open "one more native build with its own review
+   clock" risk is NOT in play.
+   - Minor cleanup (not a blocker): the navigation-policy allowlist
+     (`ContentView.swift:132–133`) keeps in-app navigation for hosts ending in
+     both `thedoublesman.com` AND `base44.app`. Nothing currently navigates to
+     `base44.app`; drop that entry in a future native build once fully off
+     Base44. Does not affect what URL loads.
 2. **Bring the real frontend into this repo — BEFORE any more local-only edits.**
    All frontend changes so far (removing `buySauceWithCoins`, the web-preview
    `grantIAP` simulator, and the client `evaluateAchievements` in `finalizeRound`)
