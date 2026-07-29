@@ -167,24 +167,31 @@ Build order:
      (idempotency insert + currency grant in ONE transaction, keyed on the Apple
      transactionId). `appAccountToken` verify-if-present. Web-preview grantIAP
      simulator deleted. E2E sandbox purchase still pending (see follow-ups).
-   - ⏳ **`finalize-round` achievement/mission retrofit** — LAST in this batch,
-     as its **own** function (own plan/deploy/test/commit, not deferred to a
-     later session). `usePlayer.js` still does a follow-up raw `Player.update`
-     after finalize-round to apply mission/achievement grants
-     (`bumpMissions` / `evaluateAchievements`). Move that server-side into
-     `finalize-round` (reuse `achievements_apply`; missions still need a
-     server-side `bumpMissions` equivalent), then delete the client raw-write.
+   - ✅ **`finalize-round` achievement retrofit** (done, option A) — achievements
+     folded server-side into finalize-round (reuse `evaluateAchievements` +
+     `achievements_apply`; skipped on duplicate rounds). Client
+     `evaluateAchievements` call removed from the `finalizeRound` follow-up to
+     avoid double-granting; the client surfaces `newAchievements` from the
+     response for toasts. Verified: full regression (8/8) + `rounds_50` fires
+     from a round (+600, persisted) + replay grants nothing.
+     **Missions were deliberately NOT folded here** — they don't work
+     server-side without init + rotation, which live with the daily-reset
+     follow-up. The client still bumps missions for now (pre-cutover stopgap).
    - **Achievement folding sequencing (decided 2026-07-29):** build the shared
      evaluator in claimDaily (done) → reuse in openSaucePack → retrofit
      finalize-round last. Not deferred to a follow-up session.
 
 **Tracked follow-ups (not solved yet):**
-- **Daily counter reset needs its own home, likely inside `finalize-round`.**
-  The client `claimDaily` also reset today's/mission counters (`servedToday`,
-  `dailyMissions`, etc.) on day-change; that was deliberately kept OUT of the
-  `claim-daily` port (reset is triggered by the first action of any day, not by
-  claiming). Same treatment as the finalize-round achievement retrofit — its own
-  work, not solved tonight.
+- **Daily-reset + full MISSION system — one deferred unit (cutover blocker).**
+  Two entangled things kept out of the ports so far, to be built together:
+  (a) the daily/weekly/monthly counter reset (`servedToday` etc.) on day-change,
+  which the client `claimDaily` did but `claim-daily` deliberately omitted
+  (reset is triggered by the first action of any day, not by claiming); and
+  (b) the whole **mission system** — server-side init (`defaultMissions` from
+  the pools), rotation on rollover, and `bumpMissions` progress+reward grants
+  wired into `finalize-round`. Missions can't function server-side without all
+  of this, and it shares the day-change machinery with the reset. Client still
+  handles missions until then. This blocks cutover (see readiness item 2).
 - **`appAccountToken` binding — TWO-PART, both sides required (not a backend
   TODO).** It is currently wired NOWHERE (confirmed in the real source: the
   native `purchase()` doesn't set it, and the backend didn't check it). The
@@ -263,10 +270,13 @@ line here is cleared:
    forged-JWT, and exactly-once grant (idempotent, no double-grant on replay).
    STILL REQUIRED before relying on it: a sandbox TestFlight purchase E2E, and
    confirming `APPLE_BUNDLE_ID` matches the shipped app (see follow-ups).
-2. **`finalize-round` achievement/mission retrofit — NOT STARTED.** The client
-   still does a raw `Player.update` after finalize-round for mission/achievement
-   grants; must move server-side (its own plan/deploy/test/commit) before the
-   swap, or the swap re-exposes that raw write.
+2. **Mission system — NOT STARTED (achievement half DONE).** Achievements are
+   now granted server-side by finalize-round. **Missions** are not: they're
+   initialized/rotated client-side (`defaultMissions` from the pools) into jsonb
+   columns that are NOT client-writable in Supabase, so after the swap missions
+   would be empty and never progress. The whole mission system (init + rotation
+   + `bumpMissions`) must move server-side as one unit — folded into the
+   daily-reset follow-up below. Cutover is blocked until that lands.
 3. **`base44Client.js` swap code — NOT WRITTEN.** The actual adapter pointing
    the single SDK entrypoint at Supabase (auth + `functions.invoke` +
    remaining reads) does not exist yet. The migration's whole "flip one config"

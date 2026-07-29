@@ -25,6 +25,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { perRoundBonus } from '../_shared/businesses.ts';
+import { evaluateAchievements } from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -254,8 +255,33 @@ Deno.serve(async (req) => {
       console.error('leaderboard upsert error:', lbErr);
     }
 
+    // Achievements folded server-side (retrofit): evaluate against the
+    // authoritative post-round state and grant idempotently via the shared
+    // achievements_apply RPC. Round stats (customersServed, perfectOrders,
+    // highestCombo, roundsPlayed) and level-ups are already applied by
+    // finalize_round_apply, so this catches round-driven unlocks. Missions stay
+    // client-side for now (deferred to the daily-reset follow-up).
+    let finalPlayer = newPlayer;
+    let finalStats = newStats;
+    const ach = evaluateAchievements(camelizeKeys(newPlayer), camelizeKeys(newStats));
+    if (ach.grants.length || Object.keys(ach.progressUpdates).length) {
+      const { data: after, error: achErr } = await admin.rpc('achievements_apply', {
+        p_user_id: user.id,
+        p_grants: ach.grants,
+        p_progress: ach.progressUpdates,
+      });
+      if (achErr) throw achErr;
+      if (after && !after.error) {
+        finalPlayer = after.player;
+        finalStats = after.stats;
+      }
+    }
+
     return Response.json({
-      player: toClientPlayer(newPlayer, newStats),
+      // `player` is the authoritative final state (round rewards + achievement
+      // grants). `outcome` describes the ROUND only, so it keeps referencing the
+      // post-round (pre-achievement) level/xp/coinsGranted.
+      player: toClientPlayer(finalPlayer, finalStats),
       outcome: {
         servedCount, perfectCount, mistakes, maxCombo,
         coinsEarned: coinsGranted, gemsEarned, xpEarned,
@@ -265,6 +291,7 @@ Deno.serve(async (req) => {
         levelUpCoins, levelUpGems,
         hourlyLimited: !!applied.limited,
       },
+      newAchievements: ach.newly,
     });
   } catch (error) {
     console.error('finalize-round error:', error);
