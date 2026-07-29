@@ -14,6 +14,7 @@
 // (shared evaluator) and granted idempotently via achievements_apply.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serveWithCors } from '../_shared/cors.ts';
 import { SAUCE_PACK_GEM_COST, rollSaucePack, evaluateAchievements } from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -30,7 +31,7 @@ function toClientPlayer(playerRow: Record<string, any>, statsRow: Record<string,
   return { ...camelizeKeys(playerRow), stats: camelizeKeys(statsRow) };
 }
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.replace('Bearer ', '');

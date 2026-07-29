@@ -24,6 +24,7 @@
 //     the player_stats row.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serveWithCors } from '../_shared/cors.ts';
 import { perRoundBonus } from '../_shared/businesses.ts';
 import { evaluateAchievements, buildDefaultMissions, evaluateMissions } from '../_shared/catalog.ts';
 
@@ -79,7 +80,7 @@ function toClientPlayer(playerRow: Record<string, any>, statsRow: Record<string,
   return { ...camelizeKeys(playerRow), stats: camelizeKeys(statsRow) };
 }
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.replace('Bearer ', '');

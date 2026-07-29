@@ -19,8 +19,8 @@ export default function DailyLoginModal() {
   const claimableIdx = Math.min(player.dailyStreak, DAILY_REWARDS.length - 1);
   const streakIdx = Math.max(0, claimableIdx);
 
-  function handleClaim() {
-    const r = claimDaily();
+  async function handleClaim() {
+    const r = await claimDaily();
     if (r) setClosing(true);
   }
 

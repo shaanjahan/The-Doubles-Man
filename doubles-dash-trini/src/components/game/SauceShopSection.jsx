@@ -20,10 +20,10 @@ export default function SauceShopSection() {
   const equipped = player.equippedSauces || [];
   const affordPack = (player.gems || 0) >= PACK_COST;
 
-  function handleOpenPack() {
+  async function handleOpenPack() {
     if (!affordPack) return;
-    const got = openSaucePack(PACK_COST) || [];
-    setLastOpened(got);
+    const got = await openSaucePack();
+    setLastOpened(got || []);
   }
 
   return (

@@ -1,7 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 // Keep users signed in only while they're "recently active": if the app is
 // reopened (or the tab refocuses) more than GRACE_MS after the last recorded
@@ -118,7 +116,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     function onVisibility() {
       if (document.visibilityState !== 'visible') return;
-      if (!appParams.token) return;
       if (inactivityExpired()) return;
       stampActive();
     }
@@ -146,87 +143,24 @@ export const AuthProvider = ({ children }) => {
 
   const checkAppState = async () => {
     try {
-      setIsLoadingPublicSettings(true);
       setAuthError(null);
       setNetworkError(false);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await withNetworkRetry(() => withTimeout(appClient.get(`/prod/public-settings/by-id/${appParams.appId}`), AUTH_TIMEOUT_MS));
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          if (inactivityExpired()) return;
-          stampActive();
-          await checkUserAuth();
-        } else {
-          // No token present: this is NOT a logged-in player. Mark the auth
-          // check complete with no authenticated user. The router gating
-          // (ProtectedRoute on the game routes) then sends any authenticated
-          // route to /login, while public pages (landing, terms, etc.) render
-          // normally. This avoids the old race where a redirect fired too late
-          // and the game mounted as anonymous — creating throwaway profiles
-          // that could never be updated (RLS) and re-shown the name screen.
-          setIsLoadingPublicSettings(false);
-          setIsLoadingAuth(false);
-          setAuthChecked(true);
-          setIsAuthenticated(false);
-          return;
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Transport blip (common right after the OAuth redirect returns —
-        // the WebView's network is still re-establishing): surface a retry
-        // screen rather than silently bouncing the freshly-signed-in user
-        // back to /login, which used to force them to sign in repeatedly.
-        if (isNetworkError(appError)) {
-          setNetworkError(true);
-          setIsLoadingPublicSettings(false);
-          setIsLoadingAuth(false);
-          return;
-        }
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
+      // Base44's "public-settings" bootstrap is gone under Supabase — auth state
+      // is simply the Supabase session. No app-level pre-check is needed; the
+      // router (ProtectedRoute) gates the game routes, public pages render.
+      setAppPublicSettings(null);
+      setIsLoadingPublicSettings(false);
+
+      // Inactivity window: if the user has been away longer than GRACE_MS,
+      // inactivityExpired() signs them out and we stop here.
+      if (inactivityExpired()) {
         setIsLoadingAuth(false);
+        setAuthChecked(true);
+        setIsAuthenticated(false);
+        return;
       }
+
+      await checkUserAuth();
     } catch (error) {
       console.error('Unexpected error:', error);
       if (isNetworkError(error)) {
@@ -247,9 +181,16 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await withNetworkRetry(() => withTimeout(base44.auth.me(), AUTH_TIMEOUT_MS));
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      stampActive();
+      if (currentUser) {
+        setUser(currentUser);
+        setIsAuthenticated(true);
+        stampActive();
+      } else {
+        // The adapter's me() returns null when there's no Supabase session
+        // (Base44's SDK threw instead) — treat that as simply not authenticated.
+        setUser(null);
+        setIsAuthenticated(false);
+      }
       setIsLoadingAuth(false);
       setAuthChecked(true);
       } catch (error) {

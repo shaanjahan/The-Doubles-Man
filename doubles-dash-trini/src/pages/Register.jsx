@@ -52,10 +52,9 @@ export default function Register() {
     setLoading(true);
     resetActivityStamp();
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
-      }
+      // Confirms the just-created signup. verifyOtp establishes the session
+      // directly — no separate setToken step.
+      await base44.auth.verifyOtp({ email, otpCode, type: 'signup' });
       window.location.href = "/home";
     } catch (err) {
       setError(err.message || "Invalid verification code");

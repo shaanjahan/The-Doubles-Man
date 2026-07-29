@@ -46,24 +46,16 @@ async function buyWithApple(productId, applyPlayer) {
   }
 }
 
-// Unified purchase entry: routes to Apple when window.NativeIAP?.available,
-// otherwise starts the web Base44 Payments checkout. A 'cancelled' rejection
-// bubbles up so each handler can stay silent (user closed Apple's sheet).
+// Purchase entry: native Apple IAP only. The web Base44 Payments checkout
+// (create-checkout) was removed with the Supabase migration — the app ships as
+// a native WKWebView shell where window.NativeIAP is always available. A
+// 'cancelled' rejection bubbles up so handlers can stay silent (Apple sheet
+// closed).
 function purchase(productId, applyPlayer) {
   if (window.NativeIAP?.available) {
     return buyWithApple(productId, applyPlayer);
   }
-  return (async () => {
-    let res;
-    try {
-      res = await base44.functions.invoke('create-checkout', { productId });
-    } catch (e) {
-      throw e; // preserve axios error so the caller's errorText() can read it
-    }
-    const redirectUrl = res?.data?.redirectUrl;
-    if (!redirectUrl) throw new Error(res?.data?.error || 'Could not start checkout: ' + JSON.stringify(res?.data));
-    window.location.href = redirectUrl;
-  })();
+  return Promise.reject(new Error('Purchases are only available in the app.'));
 }
 
 function ProductCard({ p, onBuy, applePrice }) {

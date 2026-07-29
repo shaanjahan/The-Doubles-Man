@@ -13,6 +13,7 @@
 // already is.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serveWithCors } from '../_shared/cors.ts';
 import { MAGIC_SAUCES } from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -29,7 +30,7 @@ function toClientPlayer(playerRow: Record<string, any>, statsRow: Record<string,
   return { ...camelizeKeys(playerRow), stats: camelizeKeys(statsRow) };
 }
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.replace('Bearer ', '');

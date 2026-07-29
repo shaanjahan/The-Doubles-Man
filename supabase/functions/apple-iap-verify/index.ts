@@ -19,6 +19,7 @@
 // two-part follow-up (native must set it; backend must then require it).
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serveWithCors } from '../_shared/cors.ts';
 import { decodeTransaction } from 'npm:app-store-server-api@1.0.0';
 import { getProduct, computeGrant } from '../_shared/purchaseProducts.ts';
 
@@ -40,7 +41,7 @@ function toClientPlayer(playerRow: Record<string, any>, statsRow: Record<string,
   return { ...camelizeKeys(playerRow), stats: camelizeKeys(statsRow) };
 }
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.replace('Bearer ', '');

@@ -14,6 +14,7 @@
 // gone); failure of the user delete -> ok:false 500.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serveWithCors } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -23,7 +24,7 @@ async function countFor(admin: any, table: string, col: string, uid: string): Pr
   return count ?? 0;
 }
 
-Deno.serve(async (req) => {
+serveWithCors(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.replace('Bearer ', '');

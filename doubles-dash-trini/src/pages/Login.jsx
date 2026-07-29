@@ -69,10 +69,10 @@ export default function Login() {
     setLoading(true);
     resetActivityStamp();
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
-      }
+      // This OTP path completes an unverified SIGNUP (see startVerify above), so
+      // verify with type 'signup'. verifyOtp establishes the session directly —
+      // no separate setToken step.
+      await base44.auth.verifyOtp({ email, otpCode, type: 'signup' });
       window.location.href = "/home";
     } catch (err) {
       setError(err.message || "Invalid verification code");

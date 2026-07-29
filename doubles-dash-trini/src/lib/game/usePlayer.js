@@ -5,8 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import {
-  ACHIEVEMENTS, BUSINESS_TIERS, DAILY_MISSION_POOL, WEEKLY_MISSION_POOL,
-  MONTHLY_MISSION_POOL, DAILY_REWARDS, MAGIC_SAUCES, xpForLevel, tierForXp,
+  ACHIEVEMENTS, DAILY_MISSION_POOL, WEEKLY_MISSION_POOL, MONTHLY_MISSION_POOL,
 } from './catalog';
 import { characterUrlByGender } from './characters';
 
@@ -114,37 +113,15 @@ export function usePlayer() {
       let me = null;
       try { me = await withRetry(() => base44.auth.me(), 3, 700); } catch { me = null; }
       if (!me) throw new Error('auth_not_ready');
-      const list = await withRetry(() => base44.entities.Player.list('-created_date', 5));
-      let p = list && list[0];
-      if (!p) {
-        p = await base44.entities.Player.create({
-          displayName: 'New Vendor',
-          avatarEmoji: AVATARS[0],
-          needsSetup: true,
-          level: 1, xp: 0, coins: 250, gems: 10,
-          businessTier: 0, currentLocationId: 0,
-          dailyStreak: 0, lastDailyClaim: '',
-          magicSauces: [
-            { id: 'pepper_fairy', count: 2 },
-            { id: 'lucky_sauce', count: 2 },
-          ],
-          equippedSauces: [],
-          upgrades: {},
-          achievementProgress: {},
-          dailyMissions: defaultMissions(DAILY_MISSION_POOL, 3),
-          weeklyMissions: defaultMissions(WEEKLY_MISSION_POOL, 2),
-          monthlyMissions: defaultMissions(MONTHLY_MISSION_POOL, 1),
-          stats: freshStats(),
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-        });
-      }
-      p = ensureDefaults(p);
-      p.lastLoginAt = new Date().toISOString();
-      playerRef.current = p;
-      setPlayer(p);
-      // fire-and-forget login touch
-      base44.entities.Player.update(p.id, { lastLoginAt: p.lastLoginAt }).catch(() => {});
+      // ensure-player atomically creates the row server-side if missing (the
+      // only path a players row is created through) and returns the
+      // authoritative player — camelCase + nested stats.
+      const res = await withRetry(() => base44.functions.invoke('ensure-player', {}));
+      const p = res?.data?.player;
+      if (!p) throw new Error('no_player');
+      const next = ensureDefaults(p);
+      playerRef.current = next;
+      setPlayer(next);
     } catch (e) {
       setError(e?.message || String(e));
     } finally {
@@ -216,72 +193,10 @@ export function usePlayer() {
     return next;
   }, [persist]);
 
-  function uniqueSauceCount(p) {
-    return (p.magicSauces || []).filter(s => s.count > 0).length;
-  }
-
-  // evaluate achievements vs current stats — return list of newly unlocked with rewards
-  function evaluateAchievements(next) {
-    const stats = next.stats;
-    const snapshot = {
-      customersServed: stats.customersServed || 0,
-      perfectOrders: stats.perfectOrders || 0,
-      highestCombo: stats.highestCombo || 0,
-      level: next.level,
-      lifetimeCoins: stats.lifetimeCoins || 0,
-      uniqueSauces: uniqueSauceCount(next),
-      dailyStreak: next.dailyStreak || 0,
-      roundsPlayed: stats.roundsPlayed || 0,
-    };
-    const newly = [];
-    for (const a of ACHIEVEMENTS) {
-      const cur = next.achievementProgress[a.id] || { value: 0, claimed: false };
-      const v = snapshot[a.stat] ?? 0;
-      if (!cur.claimed && v >= a.target) {
-        next.achievementProgress[a.id] = { value: v, claimed: true, claimedAt: new Date().toISOString() };
-        if (a.reward?.coins) next.coins += a.reward.coins;
-        if (a.reward?.gems) next.gems += a.reward.gems;
-        newly.push(a);
-      } else if (cur.value !== v) {
-        next.achievementProgress[a.id] = { ...cur, value: v };
-      }
-    }
-    return newly;
-  }
-
-  function bumpMissions(next, statMap) {
-    for (const list of [next.dailyMissions, next.weeklyMissions, next.monthlyMissions]) {
-      if (!list) continue;
-      for (const m of list) {
-        if (m.claimed) continue;
-        if (statMap[m.stat] !== undefined) {
-          m.value = Math.max(m.value, statMap[m.stat]);
-          if (m.value >= m.target) {
-            m.claimed = true;
-            if (m.reward?.coins) next.coins += m.reward.coins;
-            if (m.reward?.gems) next.gems += m.reward.gems;
-            if (m.reward?.xp) next.xp += m.reward.xp;
-          }
-        }
-      }
-    }
-  }
-
-  // Apply XP / level-up / tier-up after stat changes
-  function applyXpCoins(next) {
-    while (next.xp >= xpForLevel(next.level)) {
-      next.xp -= xpForLevel(next.level);
-      next.level += 1;
-      next.coins += 100 + next.level * 25;
-      // Match the server's finalize-round reward: a few gems per level so the
-      // gem balance also climbs as the vendor ranks up (not just coins).
-      next.gems = (next.gems || 0) + Math.max(1, Math.floor(next.level / 5));
-    }
-    const lvlReqs = [1, 3, 6, 10, 15, 22, 30];
-    let newTier = 0;
-    for (let i = 0; i < lvlReqs.length; i++) if (next.level >= lvlReqs[i]) newTier = i;
-    if (newTier > next.businessTier) next.businessTier = newTier;
-  }
+  // Achievement/mission/level-up computation moved server-side (finalize-round,
+  // claim-daily, etc.); the client-side helpers were removed with the economy
+  // rewiring. usePlayer now adopts the authoritative player the Edge Functions
+  // return (applyServerPlayer) and surfaces newAchievements for the toast.
 
   // Convenience: also expose recently unlocked achievements (last save)
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
@@ -345,106 +260,76 @@ export function usePlayer() {
     }
   }, []);
 
-  // Daily login claim — advance streak, grant reward, ensure missions reset for new day.
-  const claimDaily = useCallback(() => {
-    let granted = null;
-    mutate((p) => {
-      const today = todayStr();
-      if (p.lastDailyClaim === today) return;
-      // streak rollover
-      let streak = p.dailyStreak;
-      if (p.lastDailyClaim) {
-        const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-        if (p.lastDailyClaim !== y) streak = 0; // gap -> reset
-      } else {
-        streak = 0;
+  // Daily login claim — server-authoritative (claim-daily). Returns
+  // { streak, reward } for the modal, or null if already claimed today.
+  const claimDaily = useCallback(async () => {
+    try {
+      const res = await base44.functions.invoke('claim-daily', {});
+      const data = res?.data;
+      if (data?.player) applyServerPlayer(data.player);
+      if (data?.newAchievements?.length) {
+        setNewlyUnlocked(data.newAchievements.map((id) => ACHIEVEMENTS.find((a) => a.id === id)).filter(Boolean));
       }
-      streak += 1;
-      const idx = Math.min(streak, DAILY_REWARDS.length) - 1;
-      const reward = DAILY_REWARDS[idx] || DAILY_REWARDS[0];
-      if (reward.coins) p.coins += reward.coins;
-      if (reward.gems) p.gems += reward.gems;
-      if (reward.xp) { p.xp += reward.xp; applyXpCoins(p); }
-      if (reward.magicSauce) {
-        addSauceToInventory(p, reward.magicSauce);
-      }
-      p.dailyStreak = streak;
-      p.lastDailyClaim = today;
-      // reset today's missions if day changed
-      if (p.stats.lastDayReset !== today) {
-        p.stats.lastDayReset = today;
-        p.stats.servedToday = 0; p.stats.perfectToday = 0; p.stats.maxComboToday = 0;
-        p.stats.coinsToday = 0; p.stats.roundsToday = 0; p.stats.sauceUsedToday = 0;
-        p.dailyMissions = defaultMissions(DAILY_MISSION_POOL, 3);
-      }
-      granted = { streak, reward };
-      evaluateAchievements(p);
-    });
-    return granted;
-  }, [mutate]);
+      return (data?.reward != null) ? { streak: data.streak, reward: data.reward } : null;
+    } catch (e) {
+      // A 409 "already claimed today" is expected; treat any failure as no grant.
+      console.error('claimDaily failed:', e);
+      return null;
+    }
+  }, [applyServerPlayer]);
 
-  // Buy an upgrade (cost in coins)
-  const buyUpgrade = useCallback((upgrade) => {
-    let ok = false;
-    mutate((p) => {
-      const lvl = p.upgrades[upgrade.id] || 0;
-      if (lvl >= upgrade.maxLevel) return;
-      const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.growth, lvl));
-      if (p.coins < cost) return;
-      p.coins -= cost;
-      p.upgrades[upgrade.id] = lvl + 1;
-      ok = true;
-    });
-    return ok;
-  }, [mutate]);
+  // Buy an upgrade — server-authoritative (buy-upgrade). Returns true on success,
+  // false on any rejection (max level / not enough dollars / unknown upgrade).
+  const buyUpgrade = useCallback(async (upgrade) => {
+    try {
+      const res = await base44.functions.invoke('buy-upgrade', { upgradeId: upgrade.id });
+      if (res?.data?.player) { applyServerPlayer(res.data.player); return true; }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [applyServerPlayer]);
 
-  // Equip a magic sauce (up to 2). If already equipped, unequip.
-  const toggleEquipSauce = useCallback((sauceId) => {
-    mutate((p) => {
-      const idx = p.equippedSauces.indexOf(sauceId);
-      if (idx >= 0) {
-        p.equippedSauces.splice(idx, 1);
-      } else if (p.equippedSauces.length < 2) {
-        p.equippedSauces.push(sauceId);
-      } else {
-        p.equippedSauces[1] = sauceId; // replace second slot
-      }
-    });
-  }, [mutate]);
+  // Equip / unequip a magic sauce — server-authoritative (equip-sauce, which
+  // enforces ownership so the finalize-round ceiling can't be inflated).
+  const toggleEquipSauce = useCallback(async (sauceId) => {
+    try {
+      const res = await base44.functions.invoke('equip-sauce', { sauceId });
+      if (res?.data?.player) applyServerPlayer(res.data.player);
+    } catch (e) {
+      console.error('toggleEquipSauce failed:', e);
+    }
+  }, [applyServerPlayer]);
 
   // Add a sauce to inventory (by id)
-  function addSauceToInventory(p, sauceId, count = 1) {
-    const slot = (p.magicSauces || []).find(s => s.id === sauceId);
-    if (slot) slot.count += count;
-    else p.magicSauces.push({ id: sauceId, count });
-  }
-
-  // Open a mystery sauce pack (spend gems)
-  const openSaucePack = useCallback((costGems) => {
-    let granted = [];
-    mutate((p) => {
-      if (p.gems < costGems) return;
-      p.gems -= costGems;
-      for (let i = 0; i < 3; i++) {
-        const id = randomSauceIdLite();
-        addSauceToInventory(p, id);
-        granted.push(id);
+  // Open a mystery sauce pack — server-authoritative (open-sauce-pack). The gem
+  // cost and 3-sauce roll are server-side; any passed cost arg is ignored.
+  // Returns the granted sauce ids (or [] on failure / not enough gems).
+  const openSaucePack = useCallback(async () => {
+    try {
+      const res = await base44.functions.invoke('open-sauce-pack', {});
+      const data = res?.data;
+      if (data?.player) applyServerPlayer(data.player);
+      if (data?.newAchievements?.length) {
+        setNewlyUnlocked(data.newAchievements.map((id) => ACHIEVEMENTS.find((a) => a.id === id)).filter(Boolean));
       }
-      evaluateAchievements(p);
-    });
-    return granted;
-  }, [mutate]);
+      return data?.granted || [];
+    } catch (e) {
+      console.error('openSaucePack failed:', e);
+      return [];
+    }
+  }, [applyServerPlayer]);
 
-  // Count a friend invite (triggered by sharing the game) and progress the
-  // "Invite 2 friends" weekly mission.
-  const trackInvite = useCallback(() => {
-    mutate((p) => {
-      p.stats = p.stats || {};
-      p.stats.invitedFriends = (p.stats.invitedFriends || 0) + 1;
-      bumpMissions(p, { invitedFriends: p.stats.invitedFriends });
-      evaluateAchievements(p);
-    });
-  }, [mutate]);
+  // Count a friend invite — server-authoritative (track-invite): bumps
+  // invited_friends + the "Invite 2 friends" weekly mission.
+  const trackInvite = useCallback(async () => {
+    try {
+      const res = await base44.functions.invoke('track-invite', {});
+      if (res?.data?.player) applyServerPlayer(res.data.player);
+    } catch (e) {
+      console.error('trackInvite failed:', e);
+    }
+  }, [applyServerPlayer]);
 
   const clearNewlyUnlocked = useCallback(() => setNewlyUnlocked([]), []);
   const setAvatar = useCallback((emoji) => {
@@ -477,13 +362,3 @@ export function usePlayer() {
   };
 }
 
-function randomSauceIdLite() {
-  const r = Math.random();
-  let bucket;
-  if (r < 0.05) bucket = 'Legendary';
-  else if (r < 0.2) bucket = 'Epic';
-  else if (r < 0.45) bucket = 'Rare';
-  else bucket = 'Common';
-  const pool = MAGIC_SAUCES.filter(s => s.rarity === bucket);
-  return (pool[Math.floor(Math.random() * pool.length)] || MAGIC_SAUCES[0]).id;
-}
