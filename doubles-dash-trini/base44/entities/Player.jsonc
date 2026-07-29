@@ -1,0 +1,237 @@
+{
+  "name": "Player",
+  "type": "object",
+  "properties": {
+    "displayName": {
+      "type": "string"
+    },
+    "avatarEmoji": {
+      "type": "string"
+    },
+    "needsSetup": {
+      "type": "boolean",
+      "default": false
+    },
+    "hasSeenTutorial": {
+      "type": "boolean",
+      "default": false
+    },
+    "level": {
+      "type": "number",
+      "default": 1
+    },
+    "xp": {
+      "type": "number",
+      "default": 0
+    },
+    "coins": {
+      "type": "number",
+      "default": 250
+    },
+    "gems": {
+      "type": "number",
+      "default": 10
+    },
+    "businessTier": {
+      "type": "number",
+      "default": 0
+    },
+    "currentLocationId": {
+      "type": "number",
+      "default": 0
+    },
+    "dailyStreak": {
+      "type": "number",
+      "default": 0
+    },
+    "lastDailyClaim": {
+      "type": "string",
+      "default": ""
+    },
+    "vip": {
+      "type": "boolean",
+      "default": false
+    },
+    "vipSubscriptionId": {
+      "type": "string"
+    },
+    "magicSauces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "equippedSauces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "upgrades": {
+      "type": "object"
+    },
+    "businesses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "number"
+          },
+          "count": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "lastBusinessCollect": {
+      "type": "string",
+      "default": ""
+    },
+    "hourlyEarningsCap": {
+      "type": "number",
+      "default": 3500
+    },
+    "earningsLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "string"
+          },
+          "coins": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "lastRoundSessionId": {
+      "type": "string"
+    },
+    "achievementProgress": {
+      "type": "object"
+    },
+    "dailyMissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "desc": {
+            "type": "string"
+          },
+          "target": {
+            "type": "number"
+          },
+          "stat": {
+            "type": "string"
+          },
+          "reward": {
+            "type": "object"
+          },
+          "value": {
+            "type": "number"
+          },
+          "claimed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "weeklyMissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "desc": {
+            "type": "string"
+          },
+          "target": {
+            "type": "number"
+          },
+          "stat": {
+            "type": "string"
+          },
+          "reward": {
+            "type": "object"
+          },
+          "value": {
+            "type": "number"
+          },
+          "claimed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "monthlyMissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "desc": {
+            "type": "string"
+          },
+          "target": {
+            "type": "number"
+          },
+          "stat": {
+            "type": "string"
+          },
+          "reward": {
+            "type": "object"
+          },
+          "value": {
+            "type": "number"
+          },
+          "claimed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "stats": {
+      "type": "object"
+    },
+    "lastLoginAt": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "displayName"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

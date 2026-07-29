@@ -1,0 +1,57 @@
+{
+  "name": "LeaderboardEntry",
+  "type": "object",
+  "properties": {
+    "displayName": {
+      "type": "string"
+    },
+    "avatarEmoji": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    },
+    "locationId": {
+      "type": "number"
+    },
+    "businessTier": {
+      "type": "number"
+    },
+    "level": {
+      "type": "number"
+    },
+    "vip": {
+      "type": "boolean",
+      "default": false
+    },
+    "ownerId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "displayName",
+    "category",
+    "score"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

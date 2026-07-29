@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 97%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 97%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 358 79% 49%;
+    --primary-foreground: 0 0% 97%;
+    --secondary: 45 100% 58%;
+    --secondary-foreground: 0 0% 5%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 72%;
+    --accent: 28 91% 51%;
+    --accent-foreground: 0 0% 5%;
+    --destructive: 358 82% 39%;
+    --destructive-foreground: 0 0% 97%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 358 79% 49%;
+    --chart-1: 358 79% 49%;
+    --chart-2: 2 100% 60%;
+    --chart-3: 28 91% 51%;
+    --chart-4: 45 100% 58%;
+    --chart-5: 44 100% 48%;
+    --radius: 0.9rem;
+    --font-heading: 'Bangers', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Bangers', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Bangers', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --tropic-teal: 47 100% 65%;
+    --tropic-sea: 32 89% 52%;
+    --tropic-coral: 2 100% 60%;
+    --tropic-gold: 45 100% 58%;
+    --tropic-magenta: 358 79% 49%;
+    --tropic-green: 45 100% 48%;
+    --tropic-purple: 28 91% 51%;
+    --tropic-sand: 0 0% 10%;
+    --tropic-palm: 26 100% 42%;
+  }
+
+  .dark {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 97%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 97%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 358 79% 49%;
+    --primary-foreground: 0 0% 97%;
+    --secondary: 45 100% 58%;
+    --secondary-foreground: 0 0% 5%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 72%;
+    --accent: 28 91% 51%;
+    --accent-foreground: 0 0% 5%;
+    --destructive: 358 82% 39%;
+    --destructive-foreground: 0 0% 97%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 358 79% 49%;
+    --tropic-teal: 47 100% 65%;
+    --tropic-sea: 32 89% 52%;
+    --tropic-coral: 2 100% 60%;
+    --tropic-gold: 45 100% 58%;
+    --tropic-magenta: 358 79% 49%;
+    --tropic-green: 45 100% 48%;
+    --tropic-purple: 28 91% 51%;
+    --tropic-sand: 0 0% 10%;
+    --tropic-palm: 26 100% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+    overscroll-behavior: none;
+  }
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  .bg-tropic-sunset {
+    background: linear-gradient(160deg, hsl(358 79% 49%) 0%, hsl(28 91% 51%) 45%, hsl(45 100% 58%) 100%);
+  }
+  .bg-tropic-sea {
+    background: linear-gradient(160deg, hsl(358 82% 39%) 0%, hsl(28 91% 51%) 100%);
+  }
+  .bg-tropic-carnival {
+    background: linear-gradient(135deg, hsl(358 79% 49%), hsl(28 91% 51%), hsl(45 100% 58%));
+  }
+  .bg-doubles-night {
+    background:
+      radial-gradient(120% 80% at 50% -10%, hsl(358 79% 49% / 0.16), transparent 60%),
+      linear-gradient(170deg, hsl(0 0% 5%) 0%, hsl(0 0% 8%) 50%, hsl(0 0% 5%) 100%);
+  }
+  .bg-fire-tile {
+    background:
+      radial-gradient(110% 90% at 85% -10%, hsl(45 100% 58% / 0.22), transparent 55%),
+      radial-gradient(120% 100% at -10% 110%, hsl(28 91% 51% / 0.30), transparent 60%),
+      radial-gradient(90% 90% at 50% 120%, hsl(2 100% 60% / 0.22), transparent 60%),
+      linear-gradient(165deg, hsl(0 0% 9%) 0%, hsl(355 55% 16%) 55%, hsl(0 0% 7%) 100%);
+  }
+  .text-shadow-soft {
+    text-shadow: 0 2px 8px hsl(0 0% 0% / 0.5);
+  }
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-shell {
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .pepper-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    border-radius: 9999px;
+    outline: none;
+  }
+  .pepper-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 3px solid #b45309;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+  .pepper-range::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 3px solid #b45309;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+  .pepper-range::-moz-range-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .doc-content { font-family: 'Nunito', ui-sans-serif, system-ui, sans-serif; }
+  .doc-content h1 {
+    font-family: 'Bangers', ui-sans-serif, system-ui, sans-serif;
+    font-size: 2.1rem;
+    letter-spacing: 0.01em;
+    color: hsl(var(--tropic-gold));
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+  }
+  .doc-content h2 {
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: hsl(var(--tropic-coral));
+    margin-top: 1.75rem;
+    margin-bottom: 0.4rem;
+  }
+  .doc-content h3 {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: hsl(0 0% 96%);
+    margin-top: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+  .doc-content p {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: hsl(0 0% 88%);
+    margin: 0.75rem 0;
+  }
+  .doc-content a {
+    color: hsl(var(--tropic-gold));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .doc-content strong { color: hsl(0 0% 97%); font-weight: 800; }
+  .doc-content ul { margin: 0.5rem 0 1rem 1.25rem; list-style: disc; }
+  .doc-content li { margin: 0.25rem 0; line-height: 1.7; color: hsl(0 0% 88%); }
+}

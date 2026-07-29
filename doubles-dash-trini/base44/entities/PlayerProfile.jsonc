@@ -1,0 +1,157 @@
+{
+  "name": "PlayerProfile",
+  "type": "object",
+  "properties": {
+    "vendorName": {
+      "type": "string"
+    },
+    "avatarId": {
+      "type": "string",
+      "default": "vendor_1"
+    },
+    "coins": {
+      "type": "number",
+      "default": 0
+    },
+    "gems": {
+      "type": "number",
+      "default": 0
+    },
+    "xp": {
+      "type": "number",
+      "default": 0
+    },
+    "level": {
+      "type": "number",
+      "default": 1
+    },
+    "currentLocationId": {
+      "type": "string",
+      "default": "roadside_cart"
+    },
+    "businessTier": {
+      "type": "number",
+      "default": 0
+    },
+    "upgrades": {
+      "type": "object",
+      "properties": {
+        "prepSpeed": {
+          "type": "number",
+          "default": 0
+        },
+        "tipMultiplier": {
+          "type": "number",
+          "default": 0
+        },
+        "patienceBoost": {
+          "type": "number",
+          "default": 0
+        },
+        "autoRefill": {
+          "type": "number",
+          "default": 0
+        },
+        "coinMultiplier": {
+          "type": "number",
+          "default": 0
+        },
+        "xpMultiplier": {
+          "type": "number",
+          "default": 0
+        },
+        "servingStation": {
+          "type": "number",
+          "default": 0
+        }
+      },
+      "default": {}
+    },
+    "equippedSauces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ownedSauces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "unlockedLocations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "roadside_cart"
+      ]
+    },
+    "streakCount": {
+      "type": "number",
+      "default": 0
+    },
+    "streakLastDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "lastLevelScore": {
+      "type": "number",
+      "default": 0
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "customersServed": {
+          "type": "number",
+          "default": 0
+        },
+        "perfectOrders": {
+          "type": "number",
+          "default": 0
+        },
+        "mistakes": {
+          "type": "number",
+          "default": 0
+        },
+        "coinsEarned": {
+          "type": "number",
+          "default": 0
+        },
+        "highestCombo": {
+          "type": "number",
+          "default": 0
+        },
+        "lifetimeEarnings": {
+          "type": "number",
+          "default": 0
+        },
+        "levelsCompleted": {
+          "type": "number",
+          "default": 0
+        }
+      },
+      "default": {}
+    }
+  },
+  "required": [
+    "vendorName"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
