@@ -311,9 +311,11 @@ export function usePlayer() {
         const next = ensureDefaults(data.player);
         playerRef.current = next;
         setPlayer(next);
-        // Mission/achievement grants are fixed catalog values; evaluate them on
-        // top of the authoritative state and persist once.
-        let unlocked = [];
+        // Missions are still bumped client-side for now (deferred to the
+        // daily-reset follow-up). Achievements are now granted SERVER-SIDE by
+        // finalize-round — do NOT evaluate them here too, or they'd double-grant
+        // once the Supabase backend is live. Just surface the newly-unlocked
+        // ones from the response for the toast.
         mutate((p) => {
           const s = p.stats;
           bumpMissions(p, {
@@ -328,8 +330,10 @@ export function usePlayer() {
             maxComboWeek: s.maxComboWeek,
             servedMonth: s.servedMonth,
           });
-          unlocked = evaluateAchievements(p);
         });
+        const unlocked = (data.newAchievements || [])
+          .map((id) => ACHIEVEMENTS.find((a) => a.id === id))
+          .filter(Boolean);
         if (unlocked.length) setNewlyUnlocked(unlocked);
         return data.outcome || null;
       }
@@ -445,34 +449,6 @@ export function usePlayer() {
     return granted;
   }, [mutate]);
 
-  const buySauceWithCoins = useCallback((sauceId) => {
-    let ok = false;
-    mutate((p) => {
-      addSauceToInventory(p, sauceId);
-      ok = true;
-      evaluateAchievements(p);
-    });
-    return ok;
-  }, [mutate]);
-
-  // Simulate an in-app purchase (no real IAP on web preview — grant immediately)
-  const grantIAP = useCallback((product) => {
-    mutate((p) => {
-      if (product.bundle) {
-        if (product.bundle.coins) p.coins += product.bundle.coins;
-        if (product.bundle.gems) p.gems += product.bundle.gems;
-        if (product.bundle.magicSauce) addSauceToInventory(p, product.bundle.magicSauce);
-      } else if (product.kind === 'coin_pack') {
-        p.coins += product.amount + (product.bonus || 0);
-      } else if (product.kind === 'gem_pack') {
-        p.gems += product.amount + (product.bonus || 0);
-      } else if (product.kind === 'sauce_pack') {
-        for (let i = 0; i < product.amount; i++) addSauceToInventory(p, randomSauceIdLite());
-      }
-      evaluateAchievements(p);
-    });
-  }, [mutate]);
-
   // Count a friend invite (triggered by sharing the game) and progress the
   // "Invite 2 friends" weekly mission.
   const trackInvite = useCallback(() => {
@@ -509,8 +485,8 @@ export function usePlayer() {
     loading, error, player,
     reload, mutate, persist, applyServerPlayer,
     finalizeRound, manageBusiness, claimDaily, buyUpgrade,
-    toggleEquipSauce, openSaucePack, buySauceWithCoins,
-    grantIAP, setAvatar, completeSetup, completeTutorial, trackInvite,
+    toggleEquipSauce, openSaucePack,
+    setAvatar, completeSetup, completeTutorial, trackInvite,
     newlyUnlocked, clearNewlyUnlocked,
   };
 }
