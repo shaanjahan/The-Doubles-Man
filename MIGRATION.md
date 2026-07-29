@@ -182,16 +182,32 @@ Build order:
      finalize-round last. Not deferred to a follow-up session.
 
 **Tracked follow-ups (not solved yet):**
-- **Daily-reset + full MISSION system — one deferred unit (cutover blocker).**
-  Two entangled things kept out of the ports so far, to be built together:
-  (a) the daily/weekly/monthly counter reset (`servedToday` etc.) on day-change,
-  which the client `claimDaily` did but `claim-daily` deliberately omitted
-  (reset is triggered by the first action of any day, not by claiming); and
-  (b) the whole **mission system** — server-side init (`defaultMissions` from
-  the pools), rotation on rollover, and `bumpMissions` progress+reward grants
-  wired into `finalize-round`. Missions can't function server-side without all
-  of this, and it shares the day-change machinery with the reset. Client still
-  handles missions until then. This blocks cutover (see readiness item 2).
+- ✅ **Mission system + daily reset — DONE (2026-07-29).** Built server-side and
+  wired into `finalize-round`. **Corrected understanding of the REAL behavior**
+  (the earlier notes here were wrong — verified against `usePlayer.js`):
+  - **Only DAILY missions rotate**, and only on UTC day-change. **Weekly and
+    monthly missions are seeded once and NEVER rotate**; their week/month stat
+    counters (`served_week`, `served_month`, …) **never reset** — so those are
+    effectively one-time lifetime-threshold missions despite the names. Ported
+    faithfully (decision: no weekly/monthly rotation).
+  - **Daily reset is now triggered on the FIRST ACTION of a new UTC day inside
+    `finalize_round_apply`** (zeros the six today-counters, re-seeds daily
+    missions), NOT coupled to claim-daily. This is a deliberate FIX of the
+    client's bug (client only reset on claim — an earlier note here mis-stated
+    it as "first action of any day"; that was the intended design, not the code).
+  - `defaultMissions` is **deterministic** (`pool[i % length]` = first N), ported
+    as-is (decision: faithful) — so daily "rotation" yields the same 3 missions.
+  - Server `bumpMissions` (`evaluateMissions` + idempotent `missions_apply` RPC);
+    mission xp granted WITHOUT level-up recompute (faithful). Client
+    `bumpMissions` call removed from `finalizeRound` (would double-grant).
+  - Migration `20260729025018_missions_and_daily_reset.sql`.
+- **`trackInvite` — invitedFriends raw write, NOT yet ported (own follow-up).**
+  The `wm_invite_2` weekly mission (stat `invitedFriends`) is bumped by the
+  client `trackInvite` (a raw `Player.update` fired on share), NOT by rounds —
+  so it is the one mission `finalize-round` does not progress. `trackInvite`
+  increments `player_stats.invited_friends` and bumps that mission. Its own
+  Edge Function port (server-authoritative invite count + `missions_apply` for
+  the invite mission), then delete the client raw write. Small, isolated.
 - **`appAccountToken` binding — TWO-PART, both sides required (not a backend
   TODO).** It is currently wired NOWHERE (confirmed in the real source: the
   native `purchase()` doesn't set it, and the backend didn't check it). The
@@ -297,11 +313,14 @@ items **in this order** — chosen so nothing does throwaway work:
    `evaluateAchievements` removal in `finalizeRound`, citing 5399874 / 12f8d6f /
    7627816). The "local-only edits on one machine" risk is closed. Further client
    changes (mission system, swap adapter) now commit normally.
-3. **Mission system + daily-reset (one unit).** Server-side mission init
-   (`defaultMissions` from the pools), rotation on day/week/month rollover, and
-   `bumpMissions` wired into `finalize-round`, together with the daily/weekly/
-   monthly counter reset. Missions can't work server-side without all of this
-   (the jsonb columns aren't client-writable). Last backend blocker.
+3. ✅ **Mission system + daily reset — DONE (2026-07-29).** Built server-side and
+   wired into `finalize-round` (mission init/seed + UTC day-change daily reset in
+   `finalize_round_apply`; `bumpMissions` via `missions_apply`). Faithful: only
+   daily rotates, weekly/monthly never rotate/reset (see follow-ups for the
+   corrected behavior notes). Client `bumpMissions` removed from `finalizeRound`.
+   Verified: 8/8 original regression unchanged + 10/10 mission tests. **This was
+   the last backend blocker — the backend is now cutover-ready.** (Remaining:
+   `trackInvite`'s invite mission — a small separate follow-up, not a blocker.)
 4. **`base44Client.js` swap adapter.** The adapter pointing the single SDK
    entrypoint at Supabase (auth + `functions.invoke` + remaining reads). The
    "flip one config" premise depends on this; not written yet.

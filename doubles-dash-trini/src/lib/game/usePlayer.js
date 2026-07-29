@@ -311,26 +311,12 @@ export function usePlayer() {
         const next = ensureDefaults(data.player);
         playerRef.current = next;
         setPlayer(next);
-        // Missions are still bumped client-side for now (deferred to the
-        // daily-reset follow-up). Achievements are now granted SERVER-SIDE by
-        // finalize-round — do NOT evaluate them here too, or they'd double-grant
-        // once the Supabase backend is live. Just surface the newly-unlocked
-        // ones from the response for the toast.
-        mutate((p) => {
-          const s = p.stats;
-          bumpMissions(p, {
-            servedToday: s.servedToday,
-            perfectToday: s.perfectToday,
-            maxComboToday: s.maxComboToday,
-            coinsToday: s.coinsToday,
-            roundsToday: s.roundsToday,
-            sauceUsedToday: s.sauceUsedToday,
-            servedWeek: s.servedWeek,
-            perfectWeek: s.perfectWeek,
-            maxComboWeek: s.maxComboWeek,
-            servedMonth: s.servedMonth,
-          });
-        });
+        // Missions AND achievements are now granted SERVER-SIDE by finalize-round
+        // (the response player already reflects mission/achievement rewards and
+        // the bumped/reset mission lists). Do NOT bump or evaluate them here too,
+        // or they'd double-grant. Just surface the newly-unlocked achievements
+        // from the response for the toast. (The invitedFriends weekly mission is
+        // still bumped in trackInvite — its own pending server port.)
         const unlocked = (data.newAchievements || [])
           .map((id) => ACHIEVEMENTS.find((a) => a.id === id))
           .filter(Boolean);

@@ -25,7 +25,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { perRoundBonus } from '../_shared/businesses.ts';
-import { evaluateAchievements } from '../_shared/catalog.ts';
+import { evaluateAchievements, buildDefaultMissions, evaluateMissions } from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -201,6 +201,7 @@ Deno.serve(async (req) => {
     }
 
     // ---- Atomic economy write (cap + players + player_stats + earnings_log) ----
+    const defaultMissionSets = buildDefaultMissions();
     const { data: applied, error: rpcErr } = await admin.rpc('finalize_round_apply', {
       p_user_id: user.id,
       p_session_id: sessionId,
@@ -219,6 +220,11 @@ Deno.serve(async (req) => {
       p_mistakes: mistakes,
       p_max_combo: maxCombo,
       p_sauce_used: !!body?.sauceUsed,
+      // Fresh mission sets for daily reset (day-change) + lazy init of empty
+      // lists. Only daily rotates; weekly/monthly are init-only (no rotation).
+      p_default_daily: defaultMissionSets.daily,
+      p_default_weekly: defaultMissionSets.weekly,
+      p_default_monthly: defaultMissionSets.monthly,
     });
     if (rpcErr) throw rpcErr;
     if (!applied || applied.error) {
@@ -255,15 +261,41 @@ Deno.serve(async (req) => {
       console.error('leaderboard upsert error:', lbErr);
     }
 
-    // Achievements folded server-side (retrofit): evaluate against the
-    // authoritative post-round state and grant idempotently via the shared
-    // achievements_apply RPC. Round stats (customersServed, perfectOrders,
-    // highestCombo, roundsPlayed) and level-ups are already applied by
-    // finalize_round_apply, so this catches round-driven unlocks. Missions stay
-    // client-side for now (deferred to the daily-reset follow-up).
     let finalPlayer = newPlayer;
     let finalStats = newStats;
-    const ach = evaluateAchievements(camelizeKeys(newPlayer), camelizeKeys(newStats));
+
+    // Missions (server-side bumpMissions). finalize_round_apply already did the
+    // daily reset + lazy init of the lists under lock; bump them against the
+    // authoritative post-round stats and persist/grant via the idempotent
+    // missions_apply RPC. Only daily rotates (handled in the RPC); weekly/monthly
+    // progress accumulates. The invitedFriends mission is bumped elsewhere
+    // (trackInvite — its own tracked follow-up), not here.
+    const mp = camelizeKeys(newPlayer);
+    const missionEval = evaluateMissions(
+      Array.isArray(mp.dailyMissions) ? mp.dailyMissions : [],
+      Array.isArray(mp.weeklyMissions) ? mp.weeklyMissions : [],
+      Array.isArray(mp.monthlyMissions) ? mp.monthlyMissions : [],
+      camelizeKeys(newStats) as Record<string, number>,
+    );
+    {
+      const { data: after, error: mErr } = await admin.rpc('missions_apply', {
+        p_user_id: user.id,
+        p_daily: missionEval.daily,
+        p_weekly: missionEval.weekly,
+        p_monthly: missionEval.monthly,
+      });
+      if (mErr) throw mErr;
+      if (after && !after.error) {
+        finalPlayer = after.player;
+        finalStats = after.stats;
+      }
+    }
+
+    // Achievements folded server-side: evaluate against the post-round/mission
+    // state and grant idempotently via achievements_apply. Round stats and
+    // level-ups are applied by finalize_round_apply; mission grants don't touch
+    // achievement inputs, so evaluating after missions is equivalent.
+    const ach = evaluateAchievements(camelizeKeys(finalPlayer), camelizeKeys(finalStats));
     if (ach.grants.length || Object.keys(ach.progressUpdates).length) {
       const { data: after, error: achErr } = await admin.rpc('achievements_apply', {
         p_user_id: user.id,
@@ -292,6 +324,8 @@ Deno.serve(async (req) => {
         hourlyLimited: !!applied.limited,
       },
       newAchievements: ach.newly,
+      completedMissions: missionEval.completed,
+      dayReset: !!applied.day_reset,
     });
   } catch (error) {
     console.error('finalize-round error:', error);

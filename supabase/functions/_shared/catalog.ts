@@ -160,6 +160,99 @@ function randomSauceId(): string {
   return (pool[Math.floor(Math.random() * pool.length)] || MAGIC_SAUCES[0]).id;
 }
 
+// ---- Missions (finalize-round) ----
+// Faithful port of catalog.js DAILY/WEEKLY/MONTHLY_MISSION_POOL + defaultMissions.
+// Behavior confirmed against src/lib/game/usePlayer.js (2026-07-29):
+//   * defaultMissions is DETERMINISTIC — pool[i % length], i.e. the first N of
+//     the pool (not random). Kept as-is (decision: faithful).
+//   * Only DAILY missions rotate (reset on UTC day-change). Weekly/monthly are
+//     seeded once and never rotate; their week/month stat counters never reset.
+//     Kept as-is (decision: faithful, no weekly/monthly rotation).
+//   * bumpMissions grants coins/gems/xp on completion; xp is added WITHOUT a
+//     level-up recompute. Kept faithful.
+export interface Mission {
+  id: string;
+  desc: string;
+  target: number;
+  stat: string;
+  reward: { coins?: number; gems?: number; xp?: number };
+  value: number;
+  claimed: boolean;
+}
+interface MissionDef { id: string; desc: string; target: number; stat: string; reward: { coins?: number; gems?: number; xp?: number }; }
+
+export const DAILY_MISSION_POOL: MissionDef[] = [
+  { id: 'dm_serve_15',  desc: 'Serve 15 customers',     target: 15,  stat: 'servedToday',    reward: { coins: 100, xp: 50 } },
+  { id: 'dm_perfect_5', desc: 'Serve 5 perfect orders', target: 5,   stat: 'perfectToday',   reward: { coins: 80, gems: 2 } },
+  { id: 'dm_combo_8',   desc: 'Reach a combo of 8',     target: 8,   stat: 'maxComboToday',  reward: { coins: 120, xp: 60 } },
+  { id: 'dm_coins_500', desc: 'Earn 500 dollars today', target: 500, stat: 'coinsToday',     reward: { gems: 5 } },
+  { id: 'dm_play_3',    desc: 'Play 3 rounds',          target: 3,   stat: 'roundsToday',    reward: { coins: 150 } },
+  { id: 'dm_use_sauce', desc: 'Use a Magic Sauce',      target: 1,   stat: 'sauceUsedToday', reward: { coins: 90, xp: 40 } },
+];
+export const WEEKLY_MISSION_POOL: MissionDef[] = [
+  { id: 'wm_serve_100', desc: 'Serve 100 customers this week', target: 100, stat: 'servedWeek',     reward: { coins: 500, gems: 10 } },
+  { id: 'wm_invite_2',  desc: 'Invite 2 friends',              target: 2,   stat: 'invitedFriends', reward: { gems: 15 } },
+  { id: 'wm_combo_30',  desc: 'Combo of 30',                   target: 30,  stat: 'maxComboWeek',   reward: { coins: 400, gems: 8 } },
+];
+export const MONTHLY_MISSION_POOL: MissionDef[] = [
+  { id: 'mm_serve_500', desc: 'Serve 500 customers this month', target: 500, stat: 'servedMonth', reward: { gems: 40, coins: 2000 } },
+];
+
+// Deterministic first-N selection (matches usePlayer.js defaultMissions).
+export function defaultMissions(pool: MissionDef[], count: number): Mission[] {
+  return Array.from({ length: count }, (_v, i) => {
+    const t = pool[i % pool.length];
+    return { id: t.id, desc: t.desc, target: t.target, stat: t.stat, reward: t.reward, value: 0, claimed: false };
+  });
+}
+
+// The fresh mission sets a player is seeded/rotated with. daily=3, weekly=2,
+// monthly=1 (matches usePlayer.js ensureDefaults / Player.create).
+export function buildDefaultMissions() {
+  return {
+    daily: defaultMissions(DAILY_MISSION_POOL, 3),
+    weekly: defaultMissions(WEEKLY_MISSION_POOL, 2),
+    monthly: defaultMissions(MONTHLY_MISSION_POOL, 1),
+  };
+}
+
+export interface MissionBumpResult {
+  daily: Mission[];
+  weekly: Mission[];
+  monthly: Mission[];
+  grants: { coins: number; gems: number; xp: number };
+  completed: string[];
+}
+
+// Server bumpMissions: max-progress + grant-on-complete. Faithful to
+// usePlayer.js bumpMissions. Returns the updated lists + the reward totals for
+// newly-completed missions; the idempotent missions_apply RPC does the actual
+// grant (re-checking claimed against the DB so re-bumps can't double-grant).
+export function evaluateMissions(
+  daily: Mission[], weekly: Mission[], monthly: Mission[],
+  statMap: Record<string, number>,
+): MissionBumpResult {
+  const grants = { coins: 0, gems: 0, xp: 0 };
+  const completed: string[] = [];
+  const bumpList = (list: Mission[]): Mission[] =>
+    (list || []).map((m0) => {
+      const m = { ...m0 };
+      if (m.claimed) return m;
+      if (statMap[m.stat] !== undefined) {
+        m.value = Math.max(m.value || 0, statMap[m.stat]);
+        if (m.value >= m.target) {
+          m.claimed = true;
+          grants.coins += m.reward.coins || 0;
+          grants.gems += m.reward.gems || 0;
+          grants.xp += m.reward.xp || 0;
+          completed.push(m.id);
+        }
+      }
+      return m;
+    });
+  return { daily: bumpList(daily), weekly: bumpList(weekly), monthly: bumpList(monthly), grants, completed };
+}
+
 // Roll n sauce ids (shared by the mystery pack and IAP sauce grants, so the
 // drop logic never diverges).
 export function rollSauces(n: number): string[] {
