@@ -321,8 +321,21 @@ items **in this order** — chosen so nothing does throwaway work:
    Verified: 8/8 original regression unchanged + 10/10 mission tests. **This was
    the last backend blocker — the backend is now cutover-ready.** (Remaining:
    `trackInvite`'s invite mission — a small separate follow-up, not a blocker.)
-4. **`base44Client.js` swap adapter — IN PROGRESS.** Point the single SDK
-   entrypoint at Supabase. NOTE: the "flip one config" premise was **incomplete**
+4. ✅ **`base44Client.js` swap adapter — DONE (2026-07-29), commit `ab98e72`.**
+   Built + verified end-to-end locally (automated smoke test + a full manual
+   walkthrough: login/register/OAuth, player load, round, purchases, upgrades,
+   daily, sauce pack) against live Supabase, with Base44 still live in prod.
+   Sub-steps 3b (adapter) + 3c (usePlayer rewiring + auth call-site tweaks) + 3d
+   (deleted the PlayerProfile subsystem, create-checkout web path, @base44
+   plugin/deps/app-params) all landed.
+   - **CORS bug caught by the manual walkthrough (not server tests):** no Edge
+     Function sent CORS headers, so the browser blocked every call ("Failed to
+     fetch") — "Couldn't load your stall". Fixed with a shared `serveWithCors`
+     wrapper (`_shared/cors.ts`) on all 10 functions. This is why real-browser
+     testing mattered; curl/Deno never hit it.
+   - `ensure-player` now returns camelCase + nested stats (client contract).
+   Original trace kept below for reference.
+   NOTE: the "flip one config" premise was **incomplete**
    — a full trace of every `base44.*` call site (below) found the economy
    mutations don't go through `functions.invoke` (they're client raw writes that
    must be rewired), plus three un-ported backend gaps and an auth
