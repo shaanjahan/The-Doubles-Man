@@ -288,12 +288,15 @@ items **in this order** — chosen so nothing does throwaway work:
      both `thedoublesman.com` AND `base44.app`. Nothing currently navigates to
      `base44.app`; drop that entry in a future native build once fully off
      Base44. Does not affect what URL loads.
-2. **Bring the real frontend into this repo — BEFORE any more local-only edits.**
-   All frontend changes so far (removing `buySauceWithCoins`, the web-preview
-   `grantIAP` simulator, and the client `evaluateAchievements` in `finalizeRound`)
-   were made to the **untracked** `doubles-dash-trini/` export and are local-only
-   — they'll be lost unless the frontend is version-controlled here first. Do
-   this before writing more client changes (mission system, swap adapter).
+2. ✅ **Frontend now tracked in the repo (2026-07-29).** The React/Vite frontend
+   lives in `doubles-dash-trini/` (Netlify base directory); `supabase/` stays at
+   the repo root. Imported in two commits so the migration edits are a reviewable
+   diff, not silent working-tree state: `ca61d57` (pristine Base44 export,
+   byte-for-byte from the iCloud zip) then `1436c5c` (the three edits —
+   `buySauceWithCoins` removal, web-preview `grantIAP` removal, client
+   `evaluateAchievements` removal in `finalizeRound`, citing 5399874 / 12f8d6f /
+   7627816). The "local-only edits on one machine" risk is closed. Further client
+   changes (mission system, swap adapter) now commit normally.
 3. **Mission system + daily-reset (one unit).** Server-side mission init
    (`defaultMissions` from the pools), rotation on day/week/month rollover, and
    `bumpMissions` wired into `finalize-round`, together with the daily/weekly/
