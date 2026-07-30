@@ -1,29 +1,31 @@
-// Restore each migrated tester's historical leaderboard standings into Supabase
-// from the Base44 **Leaderboard** export ("The Doublesman Data - Leaderboard.csv":
-// Category / Owner ID / Login Email / Display Name / Score / Location ID /
-// Business Tier / Level / VIP). Dry-run by default; pass --apply to write.
+// Load each migrated tester's historical leaderboard bests into the
+// public.leaderboard_seed table from the Base44 **Leaderboard** export
+// ("The Doublesman Data - Leaderboard.csv": Category / Owner ID / Login Email /
+// Display Name / Score / Location ID / Business Tier / Level / VIP).
+// Dry-run by default; pass --apply to write.
 //
 //   set -a; source .env; set +a        # loads SROLE (+ optional LEADERBOARD_CSV)
 //   deno run --allow-net --allow-read --allow-env scripts/seed-leaderboard.ts [--apply]
+//
+// This does NOT write leaderboard_entries directly. It fills leaderboard_seed
+// (keyed by email); ensure-player then applies each tester's row automatically
+// the first time they sign into the new app, via leaderboard_upsert_best. That
+// removes the "must already be registered" gating — we can load every tester's
+// standings now, and they land the instant each one logs in.
 //
 // Credentials / inputs (all via .env, never inline — inline logs to history):
 //   SROLE            PROJECT service_role key (RLS bypass for THIS project only).
 //   LEADERBOARD_CSV  Base44 Leaderboard export
 //                    (default './The Doublesman Data - Leaderboard.csv').
 //
-// The export has ~287 snapshot rows per category across the testers, so we reduce
-// to the MAX score per (owner, category) — the same "one best row per player per
-// category" contract the live table holds. Owner metadata (name/level/tier/vip/
-// location) comes from that owner's highest-Level snapshot; the avatar comes from
-// the players row (authoritative, post-restore — matches what live rounds write).
+// The export has ~287 snapshot rows per category, so we reduce to the MAX score
+// per (owner, category). Owner metadata (name/level/tier/vip/location) comes from
+// that owner's highest-Level snapshot. Avatar is left to ensure-player (it uses
+// the player's own avatar at apply time).
 //
-// Match path:  Leaderboard "Owner ID" carries "Login Email" directly ->
-//              [auth.listUsers] -> Supabase uid. Testers must already have signed
-//              into the new app (owner_id FKs auth.users), and have a players row.
-//
-// Idempotency: writes go through public.leaderboard_upsert_best, an only-if-
-// greater upsert keyed unique(owner_id, category). Re-running never lowers a
-// score and never duplicates — so this is safe to re-run as more testers sign in.
+// Idempotency: upsert keyed on email. seeded_at is intentionally omitted from the
+// payload so re-running refreshes scores/meta WITHOUT un-marking an already
+// applied row. Safe to re-run whenever the export is refreshed.
 
 import { parse } from 'jsr:@std/csv@1/parse';
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -48,20 +50,13 @@ type Cat = typeof CATEGORIES[number];
 
 // --- 1. Leaderboard export: reduce to best-per-owner-per-category + owner meta ---
 const rows = await readCsv(LEADERBOARD_CSV);
-// Tolerant column lookup (header labels have spaces / varied case).
 const cols = Object.keys(rows[0] ?? {});
 const norm = (c: string) => c.toLowerCase().replace(/[^a-z]/g, '');
 const col = (want: string) => cols.find((c) => norm(c) === want) ?? '';
 const C = {
-  category: col('category'),
-  owner: col('ownerid'),
-  email: col('loginemail'),
-  name: col('displayname'),
-  score: col('score'),
-  location: col('locationid'),
-  tier: col('businesstier'),
-  level: col('level'),
-  vip: col('vip'),
+  category: col('category'), owner: col('ownerid'), email: col('loginemail'),
+  name: col('displayname'), score: col('score'), location: col('locationid'),
+  tier: col('businesstier'), level: col('level'), vip: col('vip'),
 };
 for (const [k, v] of Object.entries(C)) {
   if (!v) throw new Error(`LEADERBOARD_CSV: missing '${k}' column in [${cols.join(', ')}]`);
@@ -71,7 +66,7 @@ type Owner = {
   email: string;
   best: Record<Cat, number>;
   meta: { name: string; level: number; tier: number; vip: boolean; location: number } | null;
-  metaLevel: number; // level of the snapshot chosen for meta (pick highest)
+  metaLevel: number;
 };
 const owners: Record<string, Owner> = {};
 for (const r of rows) {
@@ -82,59 +77,39 @@ for (const r of rows) {
   const o = (owners[oid] ??= { email: '', best: { round_score: 0, customers_served: 0, max_combo: 0 }, meta: null, metaLevel: -1 });
   if (!o.email && r[C.email]) o.email = r[C.email].trim().toLowerCase();
   o.best[cat] = Math.max(o.best[cat], int(r[C.score]));
-  // Representative metadata: the owner's highest-Level snapshot (their latest
-  // progression), so the seeded row shows their real current tier/level/name.
   const lvl = int(r[C.level]);
   if (lvl > o.metaLevel) {
     o.metaLevel = lvl;
     o.meta = { name: r[C.name] || 'New Vendor', level: lvl || 1, tier: int(r[C.tier]), vip: isVip(r[C.vip]), location: int(r[C.location]) };
   }
 }
-const ownerIds = Object.keys(owners);
-console.log(`Leaderboard CSV: ${rows.length} rows -> ${ownerIds.length} distinct owners (best score per category each)`);
+const list = Object.values(owners);
+console.log(`Leaderboard CSV: ${rows.length} rows -> ${list.length} distinct owners (best score per category each)`);
 
-// --- 2. email -> Supabase uid (paginate admin.listUsers) ---
-const emailToId: Record<string, string> = {};
-for (let page = 1; ; page++) {
-  const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-  if (error) { console.error('listUsers error:', error.message); break; }
-  for (const u of data.users) if (u.email) emailToId[u.email.toLowerCase()] = u.id;
-  if (data.users.length < 1000) break;
-}
+console.log(APPLY ? '\n*** APPLY MODE — WILL UPSERT leaderboard_seed ***\n' : '\n--- DRY RUN (no writes; use --apply to write) ---\n');
 
-console.log(APPLY ? '\n*** APPLY MODE — WILL WRITE (only-if-greater upsert) ***\n' : '\n--- DRY RUN (no writes; use --apply to write) ---\n');
-
-// --- 3. seed each mappable owner via leaderboard_upsert_best ---
-let seeded = 0, noEmail = 0, notRegistered = 0, noPlayer = 0;
-for (const oid of ownerIds) {
-  const o = owners[oid];
+// --- 2. upsert into leaderboard_seed (keyed by email; seeded_at left untouched) ---
+let loaded = 0, noEmail = 0;
+for (const o of list) {
   const m = o.meta!;
   const label = `${m.name} L${m.level} tier${m.tier}${m.vip ? ' VIP' : ''} — round=${o.best.round_score} customers=${o.best.customers_served} combo=${o.best.max_combo}`;
-  if (!o.email) { console.log(`  SKIP (no email in export):          ${label}`); noEmail++; continue; }
-  const uid = emailToId[o.email];
-  const who = `${label} <${o.email}>`;
-  if (!uid) { console.log(`  SKIP (not signed into new app yet):  ${who}`); notRegistered++; continue; }
-  // Avatar from the players row (same source finalize-round uses); may be null
-  // until the player's full restore runs — the UI falls back to a default emoji.
-  const { data: player } = await admin.from('players').select('id,avatar_emoji').eq('user_id', uid).maybeSingle();
-  if (!player) { console.log(`  SKIP (registered, no player row):    ${who}`); noPlayer++; continue; }
-
-  console.log(`  ${APPLY ? 'SEED' : 'WOULD SEED'}: ${who}`);
+  if (!o.email) { console.log(`  SKIP (no email in export): ${label}`); noEmail++; continue; }
+  console.log(`  ${APPLY ? 'LOAD' : 'WOULD LOAD'}: ${label} <${o.email}>`);
   if (APPLY) {
-    const { error } = await admin.rpc('leaderboard_upsert_best', {
-      p_owner_id: uid,
-      p_display_name: m.name,
-      p_avatar_emoji: player.avatar_emoji ?? null,
-      p_location_id: m.location,
-      p_business_tier: m.tier,
-      p_level: m.level,
-      p_vip: m.vip,
-      p_round_score: o.best.round_score,
-      p_customers: o.best.customers_served,
-      p_max_combo: o.best.max_combo,
-    });
+    const { error } = await admin.from('leaderboard_seed').upsert({
+      email: o.email,
+      display_name: m.name,
+      location_id: m.location,
+      business_tier: m.tier,
+      level: m.level,
+      vip: m.vip,
+      round_score: o.best.round_score,
+      customers_served: o.best.customers_served,
+      max_combo: o.best.max_combo,
+    }, { onConflict: 'email' });
     if (error) { console.log(`      ERROR: ${error.message}`); continue; }
   }
-  seeded++;
+  loaded++;
 }
-console.log(`\nSummary: ${APPLY ? 'seeded' : 'would seed'} ${seeded} | no-email ${noEmail} | not-signed-in ${notRegistered} | registered-no-player ${noPlayer}`);
+console.log(`\nSummary: ${APPLY ? 'loaded' : 'would load'} ${loaded} into leaderboard_seed | no-email ${noEmail}`);
+console.log('Applied to each tester automatically by ensure-player on their next sign-in.');

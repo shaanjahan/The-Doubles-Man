@@ -37,10 +37,51 @@ async function respondWithPlayer(
   admin: any,
   playerRow: Record<string, any>,
   created: boolean,
+  user: { id: string; email?: string | null },
 ) {
   const stats = await ensureStatsRow(admin, playerRow.id);
+  // Apply this tester's migrated historical leaderboard standings (best-effort,
+  // never fatal to player load — mirrors finalize-round's non-fatal leaderboard
+  // write). Fires on every ensure but is a no-op once seeded_at is stamped.
+  await applyLeaderboardSeed(admin, user, playerRow).catch((e) =>
+    console.error('leaderboard seed apply error:', e instanceof Error ? e.message : String(e))
+  );
   const player = { ...camelizeKeys(playerRow), stats: camelizeKeys(stats) };
   return Response.json({ player, created });
+}
+
+// One-time: if this tester has a leaderboard_seed row not yet applied, write
+// their historical bests via leaderboard_upsert_best (only-if-greater, so it
+// never lowers a live score) and stamp seeded_at so it applies exactly once.
+// Double-apply across tabs is harmless (idempotent RPC), so we don't lock.
+async function applyLeaderboardSeed(
+  admin: any,
+  user: { id: string; email?: string | null },
+  playerRow: Record<string, any>,
+) {
+  const email = (user.email ?? '').toLowerCase();
+  if (!email) return;
+  const { data: seed } = await admin
+    .from('leaderboard_seed')
+    .select('*')
+    .eq('email', email)
+    .is('seeded_at', null)
+    .maybeSingle();
+  if (!seed) return;
+  const { error } = await admin.rpc('leaderboard_upsert_best', {
+    p_owner_id: user.id,
+    p_display_name: seed.display_name,
+    p_avatar_emoji: playerRow.avatar_emoji ?? seed.avatar_emoji ?? null,
+    p_location_id: seed.location_id,
+    p_business_tier: seed.business_tier,
+    p_level: seed.level,
+    p_vip: seed.vip,
+    p_round_score: seed.round_score,
+    p_customers: seed.customers_served,
+    p_max_combo: seed.max_combo,
+  });
+  if (error) { console.error('leaderboard_upsert_best (seed) error:', error.message); return; }
+  await admin.from('leaderboard_seed').update({ seeded_at: new Date().toISOString() }).eq('email', email);
 }
 
 serveWithCors(async (req) => {
@@ -72,7 +113,7 @@ serveWithCors(async (req) => {
     if (selErr) throw selErr;
 
     if (existing) {
-      return await respondWithPlayer(admin, existing, false);
+      return await respondWithPlayer(admin, existing, false, user);
     }
 
     // 2. Try to create one.
@@ -93,13 +134,13 @@ serveWithCors(async (req) => {
           .maybeSingle();
         if (refetchErr) throw refetchErr;
         if (raceWinner) {
-          return await respondWithPlayer(admin, raceWinner, false);
+          return await respondWithPlayer(admin, raceWinner, false, user);
         }
       }
       throw insErr;
     }
 
-    return await respondWithPlayer(admin, created, true);
+    return await respondWithPlayer(admin, created, true, user);
   } catch (error) {
     console.error('ensure-player error:', error);
     const msg = error instanceof Error ? error.message : String(error);

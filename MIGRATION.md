@@ -591,12 +591,23 @@ greater upsert, unique(owner_id,category) — idempotent, never lowers a live
 score, safe to re-run). Owner meta (name/level/tier/vip/location) from the
 highest-Level snapshot; avatar from the players row.
 
-Gating is identical to the player restore: `owner_id` FKs `auth.users`, so only
-testers who've signed into the new app can be seeded. Dry-run of 12 export owners
--> **1 seeded** (dev Shaanjahan: round 633782 / customers 338 / combo 165,
-verified in DB), 9 not-signed-in, 1 no-email throwaway, 1 registered-without-
-player-row. **Re-run `deno run --allow-net --allow-read --allow-env
-scripts/seed-leaderboard.ts --apply` as more testers sign in** (pairs with
-`seed-testers.ts`). Fully-automatic on-first-login seeding is NOT built yet —
-would require loading the historical bests into a table + triggering
-`leaderboard_upsert_best` from `ensure-player`.
+**Automatic on-first-login seeding (built + deployed 2026-07-30).** So testers
+see their standings the instant they sign in — no manual re-runs, no "must
+already be registered" gating:
+- `leaderboard_seed` table (migration `20260730160000`): historical bests keyed
+  by **email**, service-role-only RLS (holds tester emails — never in the repo).
+- `scripts/seed-leaderboard.ts` now LOADS that table from the CSV (upsert by
+  email; `seeded_at` left untouched on re-run). Loaded **11/12** owners (the 12th,
+  "MacroMaha", has no email in the export). All `seeded_at = pending`.
+- `ensure-player` now applies the seed on player-ensure: looks up
+  `leaderboard_seed` by `user.email` where `seeded_at is null`, calls
+  `leaderboard_upsert_best` (only-if-greater, uses the player's own avatar), then
+  stamps `seeded_at` so it fires exactly once. Best-effort/non-fatal — a seed
+  hiccup never blocks player load. Deployed via `supabase functions deploy`
+  (CLI auth = `SUPABASE_ACCESS_TOKEN=$SUPABASE_PAT`); boots clean.
+
+Verify per tester: on their next app open, their `leaderboard_seed.seeded_at`
+flips to a timestamp and their three boards show the historical scores (dev
+Shaanjahan already validated directly: round 633782 / 338 / 165). The migration
+was applied via the Management API `database/query` endpoint (not `db push`) +
+`notify pgrst, 'reload schema'`, consistent with the other migrations.
