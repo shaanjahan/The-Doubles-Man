@@ -107,6 +107,16 @@ const COSMETIC_MAP = {
   hasSeenTutorial: 'has_seen_tutorial',
 };
 
+// snake_case DB row -> camelCase (top-level keys), matching the player contract
+// every Edge Function returns. Used for tables read directly from the client
+// (leaderboard_entries) rather than through a function.
+const toCamel = (s) => s.replace(/_([a-z])/g, (_m, c) => c.toUpperCase());
+const camelizeKeys = (row) => {
+  const out = {};
+  for (const k of Object.keys(row || {})) out[toCamel(k)] = row[k];
+  return out;
+};
+
 // ---- entities ----
 const entities = {
   Player: {
@@ -147,7 +157,11 @@ const entities = {
       if (limit) q = q.limit(limit);
       const { data, error } = await q;
       if (error) throw error;
-      return data || [];
+      // Rows come back snake_case (owner_id, display_name, avatar_emoji, …) but
+      // the UI reads camelCase (e.ownerId, e.displayName, e.avatarEmoji). Map
+      // keys so names/avatars render and the "you" highlight (ownerId) matches —
+      // same top-level camelCase contract every Edge Function returns.
+      return (data || []).map(camelizeKeys);
     },
   },
 };

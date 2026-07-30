@@ -42,11 +42,11 @@ export default function Leaderboard() {
   const filtered = [...entries]
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, 25);
-  // Entries are created server-side under the service role, so created_by_id
-  // is the service role — not the user. Each entry carries ownerId (the real
-  // user id), and the current user's id is the Player record's created_by_id.
-  const myId = player?.created_by_id || player?.id;
-  const myIdx = filtered.findIndex((e) => (e.ownerId || e.created_by_id) === myId);
+  // Each entry's ownerId is the auth user id (leaderboard_entries.owner_id).
+  // On the player record that same id is userId (players.user_id) — not the
+  // players-table PK (player.id), so match on userId.
+  const myId = player?.userId;
+  const myIdx = filtered.findIndex((e) => e.ownerId === myId);
 
   return (
     <div className="max-w-2xl mx-auto px-3 pt-3 pb-6 space-y-3">
@@ -74,7 +74,7 @@ export default function Leaderboard() {
           </div>
         ) : (
           filtered.map((e, i) => {
-            const mine = (e.ownerId || e.created_by_id) === myId;
+            const mine = e.ownerId === myId;
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
             return (
               <div key={e.id} className={`flex items-center gap-3 px-3 py-2 border-b border-amber-50 last:border-0 ${mine ? 'bg-amber-50' : ''}`}>
