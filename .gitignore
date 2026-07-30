@@ -11,6 +11,9 @@ supabase/.temp/
 # Node
 node_modules/
 
-# Tester data exports (contain real tester emails) — pass the path via the CSV
-# env var to scripts/seed-testers.ts; the file lives OUTSIDE the repo.
-*.csv
+# Tester data exports (real tester emails) — keep OUT of the repo. NOT *.csv
+# (that would silently swallow legit game-data CSVs); ignore the Base44 export
+# files by name + a data/ dir for any exports kept locally. Pass the export path
+# to scripts/seed-testers.ts via the CSV env var.
+/data/
+The Doublesman Data*.csv

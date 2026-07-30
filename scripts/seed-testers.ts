@@ -15,7 +15,7 @@ const URL = 'https://zongwrqawgaipabdgmwe.supabase.co';
 const SROLE = Deno.env.get('SROLE')!;
 const CSV = Deno.env.get('CSV')!;
 const APPLY = Deno.args.includes('--apply');
-const FORCE = Deno.args.includes('--force'); // re-seed even if not at creation defaults
+const FORCE = Deno.args.includes('--force'); // re-seed even if already in the seed log
 
 const admin = createClient(URL, SROLE, { auth: { persistSession: false } });
 
@@ -66,16 +66,17 @@ for (const [email, r] of targets) {
   const uid = emailToId[email];
   const label = `${r['Display Name']} <${email}> L${r['Level']} tier${r['Business Tier']} coins=${r['Coins']} gems=${r['Gems']}`;
   if (!uid) { console.log(`  SKIP (not signed in yet):        ${label}`); notRegistered++; continue; }
-  const { data: player } = await admin.from('players').select('id,coins,gems,level,xp').eq('user_id', uid).maybeSingle();
+  const { data: player } = await admin.from('players').select('id,coins,gems,level').eq('user_id', uid).maybeSingle();
   if (!player) { console.log(`  SKIP (registered, no player row): ${label}`); noPlayer++; continue; }
 
-  // Idempotent + non-clobbering: only seed a player still at creation defaults
-  // (a freshly-signed-in tester). Anyone already seeded OR who has since played
-  // is left alone (no-op) unless --force. The write itself is an absolute SET,
-  // never an add.
-  const isFresh = player.coins === 250 && player.gems === 10 && player.level === 1 && (player.xp ?? 0) === 0;
-  if (!isFresh && !FORCE) {
-    console.log(`  ALREADY SEEDED / has progress — NO-OP:  ${label} (current coins=${player.coins})`);
+  // Idempotency is based on the seed LOG (have I seeded this account?), NOT the
+  // player's current state — testers sign in and play immediately, so an
+  // "at-defaults" check would never match and they'd never get seeded. Seed
+  // once, record it in player_seed_log, never touch again; their ongoing play
+  // is then safe. --force re-seeds regardless. The write is an absolute SET.
+  const { data: logged } = await admin.from('player_seed_log').select('user_id').eq('user_id', uid).maybeSingle();
+  if (logged && !FORCE) {
+    console.log(`  ALREADY SEEDED (per seed log) — NO-OP:  ${label} (current coins=${player.coins})`);
     alreadySeeded++; continue;
   }
 
@@ -105,6 +106,8 @@ for (const [email, r] of targets) {
     const e1 = (await admin.from('players').update(playerPatch).eq('user_id', uid)).error;
     const e2 = (await admin.from('player_stats').update(statsPatch).eq('player_id', player.id)).error;
     if (e1 || e2) { console.log(`      ERROR: ${e1?.message || ''} ${e2?.message || ''}`); continue; }
+    // Record the seed so future runs skip this account regardless of its state.
+    await admin.from('player_seed_log').upsert({ user_id: uid, email, note: 'seeded from Player Activity CSV' }, { onConflict: 'user_id' });
   }
   seeded++;
 }
