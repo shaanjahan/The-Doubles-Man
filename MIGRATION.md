@@ -537,20 +537,35 @@ everything else (Netlify, GitHub, Sentry) on free tiers at this scale.
 Testers on the new backend by **August 15, 2026**. Buffer built into the
 back half of the timeline deliberately — protect it rather than filling it.
 
-## Auth email — STOPGAP (2026-07-30), must re-tighten
+## Auth email — RESOLVED (2026-07-30)
 
 New signups were failing ("Error sending confirmation email"): confirmation was
 required (`mailer_autoconfirm=false`) but SMTP sent from Resend's **sandbox**
 sender `onboarding@resend.dev`, which only delivers to the Resend account owner
-— so testers never got the confirm link. **Stopgap applied:** set
-`mailer_autoconfirm=true` (signups auto-confirm, no email) — verified a fresh
-signup now returns a confirmed session. Apple sign-in was never affected.
+— so testers never got the code. (A brief `mailer_autoconfirm=true` stopgap was
+tried and reverted — this app uses email-OTP *codes*, so autoconfirm suppresses
+the code and breaks Register/Login.)
 
-**Debt to repay (proper end-state):**
-1. Verify the Resend sending domain (DNS already has `resend._domainkey` + `send`
-   MX/SPF via SES → likely `thedoublesman.com`).
-2. Set the SMTP sender to `noreply@thedoublesman.com` via the FULL SMTP block
-   (host/port/user/pass together — patching `smtp_admin_email` alone doesn't
-   stick; it's currently `None`, so password-reset emails don't send).
-3. Re-enable email confirmation (`mailer_autoconfirm=false`) once delivery is
-   proven to a non-owner inbox.
+**Root cause found:** the `thedoublesman.com` sending domain was owned by
+Base44's Resend team, so our Resend team saw "No domains yet" and had no valid
+DKIM. Also, a partial Management-API PATCH of `smtp_admin_email` alone had wiped
+the entire custom SMTP block (Supabase treats SMTP as all-or-nothing), dropping
+auth back to the built-in mailer.
+
+**Fix applied (verified working):**
+1. Claimed `thedoublesman.com` into our Resend team (proved ownership via a TXT
+   `resend-domain-verification` record at IONOS).
+2. Updated the IONOS `resend._domainkey` DKIM TXT to our team's new value
+   (the record was briefly deleted and re-created — same effect). `send` MX/SPF
+   (Amazon SES) already matched. Resend shows **Domain verified**. Receiving
+   left OFF to protect the IONOS inbox MX.
+3. Re-entered the FULL SMTP block in the Supabase Dashboard: host
+   `smtp.resend.com`, port 465, user `resend`, sender `noreply@thedoublesman.com`,
+   name "The Doubles Man". `mailer_autoconfirm` stays **false** (OTP codes).
+4. Verified end-to-end: `POST /auth/v1/otp` for a non-owner Gmail returned 200
+   and the code **arrived in the inbox** from `noreply@thedoublesman.com`.
+
+**Security follow-up (open):** revoke the Resend API key that was pasted in a
+chat session (`re_fWw3…`); the key now in Supabase SMTP must be a freshly-minted
+one. Keys stay in `.env` / the Dashboard — never inline, never handled by the
+assistant.
