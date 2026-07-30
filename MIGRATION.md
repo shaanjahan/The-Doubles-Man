@@ -88,8 +88,15 @@ the ~8 real testers, via `scripts/seed-testers.ts`.
   still at creation defaults (250/10/L1), so re-runs are a no-op and never
   overwrite post-seed play (`--force` overrides). **Dry-run by default;**
   `--apply` writes.
-- **The CSV is NOT in the repo** (real tester emails) — it's `.gitignore`d
-  (`*.csv`); pass its path via the `CSV` env var, `SROLE` via env.
+- **The CSV is NOT in the repo** (real tester emails) — it's `.gitignore`d by
+  name + `/data/` (NOT `*.csv`, which would swallow legit game-data CSVs).
+- **Keys never on a command line.** Put `SROLE` (service_role), `CSV` (export
+  path), and the Supabase Management-API PAT in a git-ignored `.env`, then
+  `set -a; source .env; set +a` before running the seed script or applying a
+  migration via `curl … api.supabase.com`. Inline `SROLE=… deno run` /
+  `PAT=… curl` forms get logged to `~/.zsh_history` — that is how the original
+  PAT leaked (service_role stayed clean only because it's fetched via the
+  `supabase` CLI, never inline). Do not reintroduce inline-key invocations.
 - Applied so far: `ptsudarshan@icloud.com` (the dev's account, seeded during
   testing). The other 7 are queued for when they sign in.
 
