@@ -136,12 +136,13 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   deno run --allow-net --allow-read --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```
-- **Status (2026-07-30):** frontend live on `thedoublesman.netlify.app`; game
-  art + tester avatars rehosted off Base44. Full-restore script verified against
-  **real** data (Player export + Activity-CSV email join, 8/8 resolve; 1 of 8
-  signed in so far — the dev's account, logged `partial`, eligible for the full
-  pass). Nobody is full-restored yet — the restore runs post-cutover, per tester,
-  gated on `--apply`.
+- **Status (2026-07-30):** **CUTOVER DONE — `thedoublesman.com` is live on
+  Netlify + Supabase** with a valid Let's Encrypt cert and self-hosted `/game/`
+  art. Base44 is out of the serving path but still live as rollback. Game art +
+  tester avatars rehosted. Full-restore script verified against **real** data
+  (Player export + Activity-CSV email join, 8/8 resolve). **Remaining:** testers
+  sign in → per-tester `seed-testers.ts --apply` restore (gated) → decommission
+  Base44 last.
 
 **Kill, don't port:** the `grantIAP` "web-preview" purchase simulator in
 `usePlayer.js` grants currency with no payment. No web surface exists
@@ -157,19 +158,22 @@ insurance until the very last step.**
   Netlify subdomain (env vars, verified render). ✅ Game art → Netlify `/game/`;
   tester avatars → Storage. ✅ Auth allowlist has `thedoublesman.com/**` + the
   `.netlify.app` subdomain.
-- ⬜ Manual QA on `thedoublesman.netlify.app`: every screen's art, login (email +
-  Apple), a full round, a purchase.
+- ✅ Manual QA on `thedoublesman.netlify.app` passed (art, login, a round).
 
-**The flip** (keep the pull→flip gap small — a brief tester freeze is ideal):
-1. **Fresh `Player_export.csv` re-pull from Base44 — immediately before the DNS
-   flip.** After the flip, testers play on Supabase and their Base44 state is
-   frozen, so anything between pull and flip is lost. The Activity CSV (email
-   join) is stable — no re-pull. *Verify:* dedup → 8 testers, levels/coins sane.
-2. **DNS flip** `thedoublesman.com` → Netlify (add custom domain in Netlify, then
-   update the registrar). *Verify:* the domain (cache-busted) serves the Netlify
-   build not Base44; TLS issued; images load from `/game/`.
-3. **Smoke test on `thedoublesman.com`:** Apple + email login, player loads, a
-   round persists (`finalize-round`), shop + art render, no console errors.
+**The flip — DONE (2026-07-30):**
+1. ⬜ **Fresh `Player_export.csv` re-pull** — still to do before the restore
+   (testers' Base44 state is frozen now that DNS moved, so any time pre-restore
+   is fine). The Activity CSV (email join) is stable — no re-pull.
+2. ✅ **DNS flipped at IONOS** (DNS host = IONOS; adding the apex A auto-disabled
+   the IONOS-managed Base44 link): apex `A @ 216.24.57.1 → 75.2.60.5` (Netlify),
+   `www CNAME base44.onrender.com → thedoublesman.netlify.app`, both TTL 300.
+   Netlify `Domain management → Add domain` (apex primary, www redirect), then
+   **Verify DNS configuration** to trigger issuance. **Rollback = re-add** `A @
+   → 216.24.57.1` + `www CNAME → base44.onrender.com` (managed link is gone, so
+   it's a manual re-add, not a toggle). MX/SPF/DKIM/Resend records untouched.
+3. ✅ **Verified:** apex `200` over HTTPS, `www`→apex `301`, Let's Encrypt cert
+   `CN=thedoublesman.com` (valid to Oct 28, auto-renew), `/game/` webp + mp3
+   serve `200`, build `index-D4tb2bOr.js`.
 
 **Restore** (post-flip, as testers return):
 4. Tester signs into `thedoublesman.com` → Supabase auth account is created.
