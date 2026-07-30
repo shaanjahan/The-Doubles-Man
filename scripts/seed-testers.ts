@@ -3,20 +3,45 @@
 // exist — i.e. they've signed into the new app). Dedups the time-series CSV to
 // each email's most-progressed row. Dry-run by default; pass --apply to write.
 //
-//   deno run --allow-net --allow-env --allow-read seed_testers.ts [--apply]
+//   set -a; source .env; set +a   # loads CSV (path only — no secret)
+//   deno run --allow-net --allow-read --allow-run --allow-env scripts/seed-testers.ts [--apply]
 //
-// Env: SROLE (service_role key), CSV (path). Partial restore: currency / level /
-// tier / location / vip / streak + lifetime stats. Does NOT touch upgrades /
+// service_role is fetched LIVE from the logged-in `supabase` CLI (run
+// `supabase login` once) — it is NEVER passed as an env var or on the command
+// line, so it never lands in shell history. Only CSV (the export path, not a
+// secret) comes from env/.env. Partial restore: currency / level / tier /
+// location / vip / streak + lifetime stats. Does NOT touch upgrades /
 // magic_sauces / businesses / achievements (not in this export).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const URL = 'https://zongwrqawgaipabdgmwe.supabase.co';
-const SROLE = Deno.env.get('SROLE')!;
+const REF = 'zongwrqawgaipabdgmwe';
+const URL = `https://${REF}.supabase.co`;
 const CSV = Deno.env.get('CSV')!;
 const APPLY = Deno.args.includes('--apply');
 const FORCE = Deno.args.includes('--force'); // re-seed even if already in the seed log
 
+// Fetch service_role from the logged-in `supabase` CLI instead of an env var,
+// so the RLS-bypass key never appears in an invocation / shell history. Tries
+// PATH first, then the Homebrew path. Needs --allow-run and `supabase login`.
+async function fetchServiceRole(): Promise<string> {
+  for (const bin of ['supabase', '/opt/homebrew/bin/supabase']) {
+    try {
+      const out = await new Deno.Command(bin, {
+        args: ['projects', 'api-keys', '--project-ref', REF, '-o', 'json'],
+        stdout: 'piped', stderr: 'null',
+      }).output();
+      if (!out.success) continue;
+      const parsed = JSON.parse(new TextDecoder().decode(out.stdout));
+      const keys = Array.isArray(parsed) ? parsed : parsed.keys;
+      const k = keys.find((x: { id?: string }) => x.id === 'service_role');
+      if (k?.api_key) return k.api_key as string;
+    } catch { /* try next candidate path */ }
+  }
+  throw new Error('could not resolve service_role via `supabase` CLI — run `supabase login`');
+}
+
+const SROLE = await fetchServiceRole();
 const admin = createClient(URL, SROLE, { auth: { persistSession: false } });
 
 // --- parse CSV (quote-aware enough for this export) ---
