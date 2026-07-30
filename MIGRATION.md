@@ -536,3 +536,21 @@ everything else (Netlify, GitHub, Sentry) on free tiers at this scale.
 
 Testers on the new backend by **August 15, 2026**. Buffer built into the
 back half of the timeline deliberately — protect it rather than filling it.
+
+## Auth email — STOPGAP (2026-07-30), must re-tighten
+
+New signups were failing ("Error sending confirmation email"): confirmation was
+required (`mailer_autoconfirm=false`) but SMTP sent from Resend's **sandbox**
+sender `onboarding@resend.dev`, which only delivers to the Resend account owner
+— so testers never got the confirm link. **Stopgap applied:** set
+`mailer_autoconfirm=true` (signups auto-confirm, no email) — verified a fresh
+signup now returns a confirmed session. Apple sign-in was never affected.
+
+**Debt to repay (proper end-state):**
+1. Verify the Resend sending domain (DNS already has `resend._domainkey` + `send`
+   MX/SPF via SES → likely `thedoublesman.com`).
+2. Set the SMTP sender to `noreply@thedoublesman.com` via the FULL SMTP block
+   (host/port/user/pass together — patching `smtp_admin_email` alone doesn't
+   stick; it's currently `None`, so password-reset emails don't send).
+3. Re-enable email confirmation (`mailer_autoconfirm=false`) once delivery is
+   proven to a non-owner inbox.
