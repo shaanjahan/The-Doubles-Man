@@ -74,20 +74,24 @@ schedule.**
 **Data (updated 2026-07-30):** a **full restore, seed-after-sign-in** migration
 for the 8 real testers, via `scripts/seed-testers.ts`. Restores the whole
 economy engine — not just balances — from the Base44 **Player entity** export.
-- **Two Base44 exports feed it.** (1) The **Player entity** (`Player_export.csv`)
-  — the full record incl. the jsonb economy (`upgrades`, `businesses`,
-  `magic_sauces`, `equipped_sauces`, `achievement_progress`, missions) + nested
-  `stats`. It keys on `created_by_id` (internal Base44 id) and carries **no
-  email**. (2) The **Users** export (`Users_export.csv`) — the `id -> email`
-  join. Both are pulled **twice**: an insurance snapshot early (against Base44
-  cancellation) and the **authoritative** pull right before cutover (testers
-  keep playing until then).
+- **Two Base44 exports feed it.** (1) `PLAYER_CSV` — the **Player entity**
+  (`Player_export.csv`): the full record incl. the jsonb economy (`upgrades`,
+  `businesses`, `magic_sauces`, `equipped_sauces`, `achievement_progress`,
+  missions) + nested `stats`. It keys on `created_by_id` (internal Base44 id)
+  and carries **no email**. (2) `EMAIL_CSV` — the **Player Activity** export
+  (`The Doublesman Data - Player Activity.csv`), whose `User ID` column **equals
+  `created_by_id`** and carries `Login Email` (verified 8/8). No separate Users
+  export exists / is needed. Only `PLAYER_CSV` needs the **authoritative
+  re-pull right before cutover** (latest game state); `EMAIL_CSV` is one-and-done
+  since emails are stable. Keep an early insurance snapshot of `PLAYER_CSV` too.
 - **Dedup:** the Player export has ~700 rows (create-race throwaways); the script
   dedupes to the most-progressed row **per `created_by_id`** (>=3 rounds = the 8
-  real testers), then joins `created_by_id -> email` via the Users export.
-- **Match path:** `created_by_id -> email -> Supabase uid` (`auth.listUsers`).
-  Testers must already have signed into the new app. 5 of 8 use Apple
-  private-relay emails, so they must return via Sign in with Apple.
+  real testers), then resolves `created_by_id -> email` via `EMAIL_CSV`.
+- **Match path:** `created_by_id == Activity "User ID" -> "Login Email" ->
+  Supabase uid` (`auth.listUsers`). Testers must already have signed into the
+  new app. 5 of 8 use Apple private-relay emails, so they must return via Sign
+  in with Apple. (Dry-run 2026-07-30: 1 of 8 signed in so far — the dev's own
+  account; the other 7 pending cutover.)
 - **Time-relative fields are re-based, not copied** (copying them re-corrupts the
   economy data this test gathers): `last_business_collect` / `last_login_at` ->
   now, `last_daily_claim` -> today (no offline-income dump; streak preserved via
@@ -124,7 +128,7 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   Canonical rollout command:
 
   ```bash
-  set -a; source .env; set +a   # loads SROLE + PLAYER_CSV + USERS_CSV
+  set -a; source .env; set +a   # loads SROLE + PLAYER_CSV + EMAIL_CSV
   deno run --allow-net --allow-read --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```

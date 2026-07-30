@@ -10,12 +10,14 @@
 //   SROLE       PROJECT service_role key (RLS bypass for THIS project only —
 //               the narrowest credential for writing rows. Not the org PAT.)
 //   PLAYER_CSV  Base44 Player entity export (default ./Player_export.csv).
-//   USERS_CSV   Base44 Users export. REQUIRED: the Player entity keys on
-//               `created_by_id` (internal Base44 id) and carries NO email, so
-//               we join created_by_id -> email here, then email -> Supabase uid.
+//   EMAIL_CSV   The Player Activity export (has `User ID` + `Login Email`) — OR
+//               a Users export (`id` + `email`). REQUIRED: the Player entity
+//               keys on `created_by_id` (internal Base44 id) and carries NO
+//               email, so we resolve created_by_id -> email here.
 //
-// Match path:  Player.created_by_id --[USERS_CSV]--> email --[auth.listUsers]-->
-//              Supabase uid. Testers must already have signed into the new app.
+// Match path:  Player.created_by_id --[EMAIL_CSV: User ID -> Login Email]-->
+//              email --[auth.listUsers]--> Supabase uid. Testers must already
+//              have signed into the new app.
 //
 // Idempotency: gated on player_seed_log.scope. A row logged 'full' is terminal
 // (skip unless --force); 'partial' or no row is eligible for this full pass.
@@ -39,9 +41,9 @@ const REF = 'zongwrqawgaipabdgmwe';
 const URL = `https://${REF}.supabase.co`;
 const SROLE = Deno.env.get('SROLE');
 const PLAYER_CSV = Deno.env.get('PLAYER_CSV') ?? 'Player_export.csv';
-const USERS_CSV = Deno.env.get('USERS_CSV');
+const EMAIL_CSV = Deno.env.get('EMAIL_CSV');
 if (!SROLE) throw new Error('SROLE (project service_role) not set — run: set -a; source .env; set +a');
-if (!USERS_CSV) throw new Error('USERS_CSV not set — export the Base44 Users table (id -> email) and set its path in .env');
+if (!EMAIL_CSV) throw new Error('EMAIL_CSV not set — path to the Player Activity export (User ID + Login Email) or a Users export (id + email)');
 const APPLY = Deno.args.includes('--apply');
 const FORCE = Deno.args.includes('--force'); // re-seed even if already logged 'full'
 
@@ -78,15 +80,19 @@ for (const r of players) {
 const targets = Object.entries(best).filter(([, r]) => roundsOf(r) >= 3);
 console.log(`Player CSV: ${players.length} rows -> ${Object.keys(best).length} distinct users -> ${targets.length} real testers (>=3 rounds)`);
 
-// --- 2. Users export: created_by_id -> email ---
-const userRows = await readCsv(USERS_CSV);
-const ucols = Object.keys(userRows[0] ?? {});
-const idCol = ucols.find((c) => c.toLowerCase() === 'id') ?? ucols.find((c) => /(^|_)id$/i.test(c));
-const emailCol = ucols.find((c) => c.toLowerCase() === 'email') ?? ucols.find((c) => /email/i.test(c));
-if (!idCol || !emailCol) throw new Error(`USERS_CSV: could not find id/email columns in [${ucols.join(', ')}]`);
+// --- 2. Email join: created_by_id -> email. Accepts the Player Activity export
+//        ("User ID" / "Login Email") or a Users export ("id" / "email"). ---
+const joinRows = await readCsv(EMAIL_CSV);
+const jcols = Object.keys(joinRows[0] ?? {});
+const norm = (c: string) => c.toLowerCase().replace(/[^a-z]/g, '');
+const idCol = jcols.find((c) => norm(c) === 'userid')        // Activity "User ID" == created_by_id
+  ?? jcols.find((c) => norm(c) === 'id')                     // Users export "id"
+  ?? jcols.find((c) => norm(c) === 'createdbyid');
+const emailCol = jcols.find((c) => /email/i.test(c));
+if (!idCol || !emailCol) throw new Error(`EMAIL_CSV: could not find user-id/email columns in [${jcols.join(', ')}]`);
 const idToEmail: Record<string, string> = {};
-for (const u of userRows) if (u[idCol]) idToEmail[u[idCol]] = (u[emailCol] ?? '').trim().toLowerCase();
-console.log(`Users CSV: ${userRows.length} rows, joined on '${idCol}' -> '${emailCol}'`);
+for (const u of joinRows) if (u[idCol]) idToEmail[u[idCol]] = (u[emailCol] ?? '').trim().toLowerCase();
+console.log(`Email join: ${joinRows.length} rows, '${idCol}' -> '${emailCol}'`);
 
 // --- 3. email -> Supabase uid (paginate admin.listUsers) ---
 const emailToId: Record<string, string> = {};
