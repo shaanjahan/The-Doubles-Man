@@ -15,5 +15,9 @@ export function characterUrlByGender(gender) {
 }
 
 export function isAvatarUrl(value) {
-  return typeof value === 'string' && value.startsWith('http');
+  // Character-art avatars are relative paths served from /game/ (e.g.
+  // "/game/408c….webp"); rehosted/legacy ones are absolute http(s) URLs. Both
+  // are images — only emoji/plain strings should fall through to emoji render,
+  // and those never start with "/" or "http".
+  return typeof value === 'string' && (value.startsWith('http') || value.startsWith('/'));
 }

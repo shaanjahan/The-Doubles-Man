@@ -193,6 +193,18 @@ for (const [cbid, r] of targets) {
     const e1 = (await admin.from('players').update(playerPatch).eq('user_id', uid)).error;
     const e2 = (await admin.from('player_stats').update(statsPatch).eq('player_id', player.id)).error;
     if (e1 || e2) { console.log(`      ERROR: ${e1?.message ?? ''} ${e2?.message ?? ''}`); continue; }
+    // Keep leaderboard rows in sync with the restored identity. ensure-player /
+    // finalize-round may have snapshotted the fresh (pre-restore) avatar/name/
+    // level when the account first signed in; refresh those columns (scores are
+    // left untouched — they're the historical bests).
+    await admin.from('leaderboard_entries')
+      .update({
+        avatar_emoji: playerPatch.avatar_emoji,
+        display_name: playerPatch.display_name,
+        level: playerPatch.level,
+        business_tier: playerPatch.business_tier,
+      })
+      .eq('owner_id', uid);
     await admin.from('player_seed_log').upsert(
       { user_id: uid, email, scope: 'full', note: 'full restore from Player entity export' },
       { onConflict: 'user_id' },
