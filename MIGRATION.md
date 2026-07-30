@@ -569,3 +569,34 @@ auth back to the built-in mailer.
 chat session (`re_fWw3…`); the key now in Supabase SMTP must be a freshly-minted
 one. Keys stay in `.env` / the Dashboard — never inline, never handled by the
 assistant.
+
+## Leaderboard fix + historical restore (2026-07-30)
+
+Two parts:
+
+**Display bug (shipped, commit 7ce71ed):** `leaderboard_entries` rows are
+snake_case but `Leaderboard.jsx` read camelCase, so names rendered blank and
+avatars fell back to the default chef; the "you" highlight matched a dead
+`created_by_id`/`player.id` instead of the auth user id. Fixed by camelizing
+rows in the `LeaderboardEntry.filter` adapter and matching
+`player.userId === entry.ownerId`. All three tabs share this one page/adapter.
+
+**Historical restore (`scripts/seed-leaderboard.ts`):** the three boards are
+best-single-round metrics; the Player export never stored per-round bests, but
+the **Leaderboard export** ("The Doublesman Data - Leaderboard.csv") does —
+Category / Owner ID / Login Email / Score across all three categories. Script
+reduces to max score per (owner, category), maps Login Email -> Supabase uid via
+`auth.listUsers`, and writes through `public.leaderboard_upsert_best` (only-if-
+greater upsert, unique(owner_id,category) — idempotent, never lowers a live
+score, safe to re-run). Owner meta (name/level/tier/vip/location) from the
+highest-Level snapshot; avatar from the players row.
+
+Gating is identical to the player restore: `owner_id` FKs `auth.users`, so only
+testers who've signed into the new app can be seeded. Dry-run of 12 export owners
+-> **1 seeded** (dev Shaanjahan: round 633782 / customers 338 / combo 165,
+verified in DB), 9 not-signed-in, 1 no-email throwaway, 1 registered-without-
+player-row. **Re-run `deno run --allow-net --allow-read --allow-env
+scripts/seed-leaderboard.ts --apply` as more testers sign in** (pairs with
+`seed-testers.ts`). Fully-automatic on-first-login seeding is NOT built yet —
+would require loading the historical bests into a table + triggering
+`leaderboard_upsert_best` from `ensure-player`.
