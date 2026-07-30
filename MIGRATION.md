@@ -71,25 +71,43 @@ Base44 stays live and paid as rollback insurance until the new stack has
 run clean for a few weeks — **do not cancel the Base44 plan on the original
 schedule.**
 
-**Data (updated 2026-07-29):** a **partial, seed-after-sign-in** migration for
-the ~8 real testers, via `scripts/seed-testers.ts`.
-- The Base44 "Player Activity" CSV is a **time series** (one row per player per
-  backup run); most rows are create-race throwaway profiles. The script dedupes
-  to each **email's** most-progressed row (>=3 rounds = the 8 real testers).
-- It restores **currency / level / xp / tier / location / VIP / streak +
-  lifetime stats only** — NOT upgrades / magic_sauces / businesses /
-  achievements (those aren't in the Activity export; a full restore would need
-  the full Player *entity* export).
-- Matches by **email** to the tester's Supabase account, which must already
-  exist (they've signed into the live app — so run this AFTER Netlify cutover,
-  per tester, as they sign in). 5 of 8 use Apple private-relay emails, so they
-  must return via Sign in with Apple.
-- **Idempotent + non-clobbering:** absolute SET (not add); seeds only a player
-  still at creation defaults (250/10/L1), so re-runs are a no-op and never
-  overwrite post-seed play (`--force` overrides). **Dry-run by default;**
-  `--apply` writes.
-- **The CSV is NOT in the repo** (real tester emails) — it's `.gitignore`d by
-  name + `/data/` (NOT `*.csv`, which would swallow legit game-data CSVs).
+**Data (updated 2026-07-30):** a **full restore, seed-after-sign-in** migration
+for the 8 real testers, via `scripts/seed-testers.ts`. Restores the whole
+economy engine — not just balances — from the Base44 **Player entity** export.
+- **Two Base44 exports feed it.** (1) The **Player entity** (`Player_export.csv`)
+  — the full record incl. the jsonb economy (`upgrades`, `businesses`,
+  `magic_sauces`, `equipped_sauces`, `achievement_progress`, missions) + nested
+  `stats`. It keys on `created_by_id` (internal Base44 id) and carries **no
+  email**. (2) The **Users** export (`Users_export.csv`) — the `id -> email`
+  join. Both are pulled **twice**: an insurance snapshot early (against Base44
+  cancellation) and the **authoritative** pull right before cutover (testers
+  keep playing until then).
+- **Dedup:** the Player export has ~700 rows (create-race throwaways); the script
+  dedupes to the most-progressed row **per `created_by_id`** (>=3 rounds = the 8
+  real testers), then joins `created_by_id -> email` via the Users export.
+- **Match path:** `created_by_id -> email -> Supabase uid` (`auth.listUsers`).
+  Testers must already have signed into the new app. 5 of 8 use Apple
+  private-relay emails, so they must return via Sign in with Apple.
+- **Time-relative fields are re-based, not copied** (copying them re-corrupts the
+  economy data this test gathers): `last_business_collect` / `last_login_at` ->
+  now, `last_daily_claim` -> today (no offline-income dump; streak preserved via
+  a fresh login); rolling stat counters (`*_today` / `*_week` / `*_month`) -> 0
+  with `last_day_reset` -> today; **missions rerolled fresh** via
+  `buildDefaultMissions()` (no stored `value`/`claimed`). Absolute lifetime stats
+  and the economy jsonb restore verbatim. VIP has no expiry field (boolean +
+  `vip_subscription_id`), so nothing to clamp there.
+- **Idempotent via `player_seed_log.scope`:** a row logged `full` is terminal
+  (skipped unless `--force`); `partial` or no row is eligible for the full pass.
+  Writes are **absolute SET**, then the log upserts to `scope='full'`. **Dry-run
+  by default;** `--apply` writes. Note: because it's an absolute SET to the
+  snapshot, any new-app play **before** the restore runs is overwritten — hence
+  the authoritative pull happens right before cutover.
+- **Known follow-up:** some `avatar_emoji` values are Base44 CDN URLs
+  (`media.base44.com/…`) that die when Base44 is torn down — restored as-is for
+  now; **re-host the images before cancelling Base44.**
+- **Exports are NOT in the repo** (real tester emails) — `.gitignore`d by name +
+  `/data/` + `Player_export.csv` / `*_export.csv` (NOT `*.csv`, which would
+  swallow legit game-data CSVs).
 - **Keys live in `.env`, never on a command line, and each task carries the
   narrowest key it needs.** Two credentials sit in a git-ignored `.env`, loaded
   via `set -a; source .env; set +a` (never inline — inline assignments get
@@ -106,12 +124,16 @@ the ~8 real testers, via `scripts/seed-testers.ts`.
   Canonical rollout command:
 
   ```bash
-  set -a; source .env; set +a   # loads SROLE + CSV path
+  set -a; source .env; set +a   # loads SROLE + PLAYER_CSV + USERS_CSV
   deno run --allow-net --allow-read --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```
-- Applied so far: `ptsudarshan@icloud.com` (the dev's account, seeded during
-  testing). The other 7 are queued for when they sign in.
+- Status: nobody is full-restored yet. `ptsudarshan@icloud.com` was
+  *partial*-seeded during earlier testing (logged `scope='partial'`), so the
+  full pass will pick it up and overwrite it with the Player-entity snapshot.
+  The other 7 are queued for when they sign in. The full-restore script is
+  verified via `deno check` + an end-to-end dry-run (real Player export +
+  synthetic Users join); it needs the real `Users_export.csv` to run for real.
 
 **Kill, don't port:** the `grantIAP` "web-preview" purchase simulator in
 `usePlayer.js` grants currency with no payment. No web surface exists

@@ -17,3 +17,7 @@ node_modules/
 # to scripts/seed-testers.ts via the CSV env var.
 /data/
 The Doublesman Data*.csv
+# Base44 entity exports (real tester emails) — keep OUT of the repo. Prefer
+# putting these under data/; these patterns catch a repo-root drop too.
+Player_export.csv
+*_export.csv

@@ -1,68 +1,94 @@
-// Seed migrated tester balances into Supabase from the Base44 "Player Activity"
-// CSV. Matches by EMAIL to each tester's Supabase account (which must already
-// exist — i.e. they've signed into the new app). Dedups the time-series CSV to
-// each email's most-progressed row. Dry-run by default; pass --apply to write.
+// Full-restore of migrated testers into Supabase from the Base44 **Player
+// entity** export (Player_export.csv) — currency/level/tier + the whole economy
+// engine (upgrades, businesses, magic sauces, achievements) that the old
+// "Player Activity" report lacked. Dry-run by default; pass --apply to write.
 //
-//   set -a; source .env; set +a   # loads SROLE (service_role) + CSV path
+//   set -a; source .env; set +a        # loads SROLE + PLAYER_CSV + USERS_CSV
 //   deno run --allow-net --allow-read --allow-env scripts/seed-testers.ts [--apply]
 //
-// SROLE is the PROJECT service_role key (bypasses RLS for this one project) —
-// the narrowest credential the seed task needs. It comes from a git-ignored
-// .env sourced via `set -a; source .env; set +a`, NEVER inline on the command
-// line (which would log it to shell history). The org-scoped Management-API PAT
-// is deliberately NOT used here — the seed script only writes rows in one
-// project, so it should carry that project's key, not an account-wide token.
-// Partial restore: currency / level / tier / location / vip / streak + lifetime
-// stats. Does NOT touch upgrades / magic_sauces / businesses / achievements
-// (not in this export).
+// Credentials / inputs (all via .env, never inline — inline logs to history):
+//   SROLE       PROJECT service_role key (RLS bypass for THIS project only —
+//               the narrowest credential for writing rows. Not the org PAT.)
+//   PLAYER_CSV  Base44 Player entity export (default ./Player_export.csv).
+//   USERS_CSV   Base44 Users export. REQUIRED: the Player entity keys on
+//               `created_by_id` (internal Base44 id) and carries NO email, so
+//               we join created_by_id -> email here, then email -> Supabase uid.
+//
+// Match path:  Player.created_by_id --[USERS_CSV]--> email --[auth.listUsers]-->
+//              Supabase uid. Testers must already have signed into the new app.
+//
+// Idempotency: gated on player_seed_log.scope. A row logged 'full' is terminal
+// (skip unless --force); 'partial' or no row is eligible for this full pass.
+// Writes are absolute SET, then the log is upserted to scope='full'.
+//
+// Time-relative fields are NOT restored verbatim (that would corrupt the very
+// economy data this test gathers). At restore:
+//   * last_business_collect / last_login_at -> now, last_daily_claim -> today
+//     (no offline-income dump; daily_streak preserved via a fresh last_login).
+//   * rolling stat counters (served/coins/rounds/… _today/_week/_month) -> 0,
+//     last_day_reset -> today.
+//   * missions rerolled fresh via buildDefaultMissions() (value:0, claimed:false)
+//     rather than restoring stored progress/claimed flags.
+// Absolute lifetime stats and the economy jsonb restore as-is.
 
+import { parse } from 'jsr:@std/csv@1/parse';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { buildDefaultMissions } from '../supabase/functions/_shared/catalog.ts';
 
 const REF = 'zongwrqawgaipabdgmwe';
 const URL = `https://${REF}.supabase.co`;
 const SROLE = Deno.env.get('SROLE');
-const CSV = Deno.env.get('CSV');
+const PLAYER_CSV = Deno.env.get('PLAYER_CSV') ?? 'Player_export.csv';
+const USERS_CSV = Deno.env.get('USERS_CSV');
 if (!SROLE) throw new Error('SROLE (project service_role) not set — run: set -a; source .env; set +a');
-if (!CSV) throw new Error('CSV (export path) not set — put it in .env or pass CSV=… inline');
+if (!USERS_CSV) throw new Error('USERS_CSV not set — export the Base44 Users table (id -> email) and set its path in .env');
 const APPLY = Deno.args.includes('--apply');
-const FORCE = Deno.args.includes('--force'); // re-seed even if already in the seed log
+const FORCE = Deno.args.includes('--force'); // re-seed even if already logged 'full'
 
 const admin = createClient(URL, SROLE, { auth: { persistSession: false } });
 
-// --- parse CSV (quote-aware enough for this export) ---
-function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.split(/\r?\n/).filter((l) => l.length);
-  const split = (l: string) => {
-    const out: string[] = []; let cur = '', q = false;
-    for (const ch of l) {
-      if (ch === '"') q = !q;
-      else if (ch === ',' && !q) { out.push(cur); cur = ''; }
-      else cur += ch;
-    }
-    out.push(cur); return out;
-  };
-  const head = split(lines[0]);
-  return lines.slice(1).map((l) => { const c = split(l); return Object.fromEntries(head.map((h, i) => [h, (c[i] ?? '').trim()])); });
+// --- helpers ---
+const int = (v: unknown) => Math.trunc(Number(v ?? 0) || 0);
+const bool = (v: unknown) => String(v ?? '').trim().toLowerCase() === 'true';
+function jobj(v: unknown): Record<string, unknown> {
+  try { const x = JSON.parse(String(v ?? '{}')); return x && typeof x === 'object' && !Array.isArray(x) ? x : {}; }
+  catch { return {}; }
 }
-
-const int = (v: string) => Math.trunc(Number(v) || 0);
-
-// --- dedup to the most-progressed row per email (rounds, then lifetime coins) ---
-const rows = parseCSV(await Deno.readTextFile(CSV));
-const best: Record<string, Record<string, string>> = {};
-for (const r of rows) {
-  const email = (r['Login Email'] || '').trim().toLowerCase();
-  if (!email) continue;
-  const cur = best[email];
-  const score = (x: Record<string, string>) => int(x['Rounds Played']) * 1e12 + int(x['Lifetime Coins']);
-  if (!cur || score(r) > score(cur)) best[email] = r;
+function jarr(v: unknown): unknown[] {
+  try { const x = JSON.parse(String(v ?? '[]')); return Array.isArray(x) ? x : []; }
+  catch { return []; }
 }
-// "8 real testers" = deduped, rounds >= 3
-const targets = Object.entries(best).filter(([, r]) => int(r['Rounds Played']) >= 3);
-console.log(`CSV: ${rows.length} rows -> ${Object.keys(best).length} distinct emails -> ${targets.length} targets (>=3 rounds)`);
-console.log(APPLY ? '\n*** APPLY MODE — WILL WRITE ***\n' : '\n--- DRY RUN (no writes; use --apply to write) ---\n');
+type Row = Record<string, string>;
+const readCsv = async (p: string) => parse(await Deno.readTextFile(p), { skipFirstRow: true }) as Row[];
 
-// --- resolve emails -> Supabase user ids (paginate admin.listUsers) ---
+// --- restore-time clamp anchors (computed once) ---
+const NOW_ISO = new Date().toISOString();
+const TODAY = NOW_ISO.slice(0, 10); // YYYY-MM-DD
+
+// --- 1. Player entity: dedup create-race throwaways to most-progressed per user ---
+const players = await readCsv(PLAYER_CSV);
+const roundsOf = (r: Row) => int(jobj(r['stats'])['roundsPlayed']);
+const score = (r: Row) => int(r['level']) * 1e12 + roundsOf(r) * 1e6 + int(r['coins']);
+const best: Record<string, Row> = {};
+for (const r of players) {
+  const cbid = r['created_by_id'];
+  if (!cbid) continue;
+  if (!best[cbid] || score(r) > score(best[cbid])) best[cbid] = r;
+}
+const targets = Object.entries(best).filter(([, r]) => roundsOf(r) >= 3);
+console.log(`Player CSV: ${players.length} rows -> ${Object.keys(best).length} distinct users -> ${targets.length} real testers (>=3 rounds)`);
+
+// --- 2. Users export: created_by_id -> email ---
+const userRows = await readCsv(USERS_CSV);
+const ucols = Object.keys(userRows[0] ?? {});
+const idCol = ucols.find((c) => c.toLowerCase() === 'id') ?? ucols.find((c) => /(^|_)id$/i.test(c));
+const emailCol = ucols.find((c) => c.toLowerCase() === 'email') ?? ucols.find((c) => /email/i.test(c));
+if (!idCol || !emailCol) throw new Error(`USERS_CSV: could not find id/email columns in [${ucols.join(', ')}]`);
+const idToEmail: Record<string, string> = {};
+for (const u of userRows) if (u[idCol]) idToEmail[u[idCol]] = (u[emailCol] ?? '').trim().toLowerCase();
+console.log(`Users CSV: ${userRows.length} rows, joined on '${idCol}' -> '${emailCol}'`);
+
+// --- 3. email -> Supabase uid (paginate admin.listUsers) ---
 const emailToId: Record<string, string> = {};
 for (let page = 1; ; page++) {
   const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
@@ -71,54 +97,89 @@ for (let page = 1; ; page++) {
   if (data.users.length < 1000) break;
 }
 
-let seeded = 0, notRegistered = 0, noPlayer = 0, alreadySeeded = 0;
-for (const [email, r] of targets) {
-  const uid = emailToId[email];
-  const label = `${r['Display Name']} <${email}> L${r['Level']} tier${r['Business Tier']} coins=${r['Coins']} gems=${r['Gems']}`;
-  if (!uid) { console.log(`  SKIP (not signed in yet):        ${label}`); notRegistered++; continue; }
-  const { data: player } = await admin.from('players').select('id,coins,gems,level').eq('user_id', uid).maybeSingle();
-  if (!player) { console.log(`  SKIP (registered, no player row): ${label}`); noPlayer++; continue; }
+console.log(APPLY ? '\n*** APPLY MODE — WILL WRITE (absolute SET) ***\n' : '\n--- DRY RUN (no writes; use --apply to write) ---\n');
 
-  // Idempotency is based on the seed LOG (have I seeded this account?), NOT the
-  // player's current state — testers sign in and play immediately, so an
-  // "at-defaults" check would never match and they'd never get seeded. Seed
-  // once, record it in player_seed_log, never touch again; their ongoing play
-  // is then safe. --force re-seeds regardless. The write is an absolute SET.
-  const { data: logged } = await admin.from('player_seed_log').select('user_id').eq('user_id', uid).maybeSingle();
-  if (logged && !FORCE) {
-    console.log(`  ALREADY SEEDED (per seed log) — NO-OP:  ${label} (current coins=${player.coins})`);
-    alreadySeeded++; continue;
+// --- 4. restore each tester ---
+let seeded = 0, noEmail = 0, notRegistered = 0, noPlayer = 0, already = 0;
+for (const [cbid, r] of targets) {
+  const email = idToEmail[cbid];
+  const label = `${r['displayName']} L${r['level']} tier${r['businessTier']} coins=${r['coins']} gems=${r['gems']}`;
+  if (!email) { console.log(`  SKIP (no email for created_by_id in Users export): ${label}`); noEmail++; continue; }
+  const uid = emailToId[email];
+  const who = `${label} <${email}>`;
+  if (!uid) { console.log(`  SKIP (not signed into new app yet):   ${who}`); notRegistered++; continue; }
+  const { data: player } = await admin.from('players').select('id,coins,level').eq('user_id', uid).maybeSingle();
+  if (!player) { console.log(`  SKIP (registered, no player row):     ${who}`); noPlayer++; continue; }
+
+  const { data: logged } = await admin.from('player_seed_log').select('scope').eq('user_id', uid).maybeSingle();
+  if (logged?.scope === 'full' && !FORCE) {
+    console.log(`  ALREADY FULLY RESTORED — NO-OP:       ${who} (current coins=${player.coins})`);
+    already++; continue;
   }
 
+  const stats = jobj(r['stats']);
+  const missions = buildDefaultMissions();
   const playerPatch = {
-    display_name: r['Display Name'] || 'New Vendor',
-    level: int(r['Level']) || 1,
-    xp: int(r['XP']),
-    coins: int(r['Coins']),
-    gems: int(r['Gems']),
-    business_tier: int(r['Business Tier']),
-    current_location_id: int(r['Location ID']),
-    vip: (r['VIP'] || '').trim().toUpperCase() === 'VIP',
-    daily_streak: int(r['Daily Streak']),
-    last_login_at: r['Last Login'] || null,
+    display_name: r['displayName'] || 'New Vendor',
+    avatar_emoji: r['avatarEmoji'] || null,
+    needs_setup: bool(r['needsSetup']),
+    has_seen_tutorial: bool(r['hasSeenTutorial']),
+    level: int(r['level']) || 1,
+    xp: int(r['xp']),
+    coins: int(r['coins']),
+    gems: int(r['gems']),
+    business_tier: int(r['businessTier']),
+    current_location_id: int(r['currentLocationId']),
+    daily_streak: int(r['dailyStreak']),
+    vip: bool(r['vip']),
+    vip_subscription_id: r['vipSubscriptionId'] || null,
+    hourly_earnings_cap: r['hourlyEarningsCap'] ? int(r['hourlyEarningsCap']) : null,
+    last_round_session_id: null, // stale round token — don't restore
+    // economy jsonb — verbatim
+    upgrades: jobj(r['upgrades']),
+    businesses: jarr(r['businesses']),
+    magic_sauces: jarr(r['magicSauces']),
+    equipped_sauces: jarr(r['equippedSauces']),
+    achievement_progress: jobj(r['achievementProgress']),
+    // missions — rerolled fresh, not restored
+    daily_missions: missions.daily,
+    weekly_missions: missions.weekly,
+    monthly_missions: missions.monthly,
+    // time-relative — clamped so accrual/streak start clean
+    last_business_collect: NOW_ISO,
+    last_login_at: NOW_ISO,
+    last_daily_claim: TODAY,
   };
   const statsPatch = {
-    rounds_played: int(r['Rounds Played']),
-    customers_served: int(r['Customers Served']),
-    perfect_orders: int(r['Perfect Orders']),
-    mistakes: int(r['Mistakes']),
-    highest_combo: int(r['Highest Combo']),
-    lifetime_coins: int(r['Lifetime Coins']),
+    // absolute lifetime — restored
+    customers_served: int(stats['customersServed']),
+    perfect_orders: int(stats['perfectOrders']),
+    highest_combo: int(stats['highestCombo']),
+    lifetime_coins: int(stats['lifetimeCoins']),
+    rounds_played: int(stats['roundsPlayed']),
+    mistakes: int(stats['mistakes']),
+    favored_sauce: (stats['favoredSauce'] as string) || null,
+    invited_friends: int(stats['invitedFriends']),
+    // rolling counters — reset so fresh missions start at 0
+    served_today: 0, perfect_today: 0, max_combo_today: 0, coins_today: 0, rounds_today: 0, sauce_used_today: 0,
+    served_week: 0, perfect_week: 0, max_combo_week: 0, served_month: 0,
+    last_day_reset: TODAY,
   };
-  console.log(`  ${APPLY ? 'SEED' : 'WOULD SEED'}: ${label}`);
-  console.log(`      players.coins ${player.coins}->${playerPatch.coins}, gems ${player.gems}->${playerPatch.gems}, level ${player.level}->${playerPatch.level}`);
+
+  console.log(`  ${APPLY ? 'RESTORE' : 'WOULD RESTORE'}: ${who}`);
+  console.log(`      coins ${player.coins}->${playerPatch.coins}, level ${player.level}->${playerPatch.level}, ` +
+    `upgrades=${Object.keys(playerPatch.upgrades).length} businesses=${playerPatch.businesses.length} ` +
+    `sauces=${playerPatch.magic_sauces.length} achievements=${Object.keys(playerPatch.achievement_progress).length}`);
   if (APPLY) {
     const e1 = (await admin.from('players').update(playerPatch).eq('user_id', uid)).error;
     const e2 = (await admin.from('player_stats').update(statsPatch).eq('player_id', player.id)).error;
-    if (e1 || e2) { console.log(`      ERROR: ${e1?.message || ''} ${e2?.message || ''}`); continue; }
-    // Record the seed so future runs skip this account regardless of its state.
-    await admin.from('player_seed_log').upsert({ user_id: uid, email, note: 'seeded from Player Activity CSV' }, { onConflict: 'user_id' });
+    if (e1 || e2) { console.log(`      ERROR: ${e1?.message ?? ''} ${e2?.message ?? ''}`); continue; }
+    await admin.from('player_seed_log').upsert(
+      { user_id: uid, email, scope: 'full', note: 'full restore from Player entity export' },
+      { onConflict: 'user_id' },
+    );
   }
   seeded++;
 }
-console.log(`\nSummary: ${APPLY ? 'seeded' : 'would seed'} ${seeded} | already-seeded/no-op ${alreadySeeded} | not-signed-in ${notRegistered} | registered-no-player ${noPlayer}`);
+console.log(`\nSummary: ${APPLY ? 'restored' : 'would restore'} ${seeded} | already-full/no-op ${already} | ` +
+  `no-email ${noEmail} | not-signed-in ${notRegistered} | registered-no-player ${noPlayer}`);
