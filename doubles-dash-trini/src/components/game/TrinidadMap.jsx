@@ -23,13 +23,13 @@ const [MAX_LAT, MAX_LNG] = [11.36, -60.0];
 // AI-generated scenery for each location — the backdrop swaps to match the
 // currently selected location (high-resolution photos, not a tile server).
 const LOCATION_IMAGES = {
-  0: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/213bc8392_ChatGPTImageJul222026at07_26_37AM.png', // San Fernando
-  2: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/4433d69fa_ChatGPTImageJul222026at07_39_54AM.png', // Port of Spain
-  3: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/a75fa861c_ChatGPTImageJul222026at07_42_41AM.png', // Maracas Beach
-  4: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/baf1ba7ae_ChatGPTImageJul222026at08_28_02AM.png', // Debe
-  5: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/c7d5f4af7_ChatGPTImageJul222026at08_32_42AM.png', // Queen's Park Savannah
-  6: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/44af1a612_ChatGPTImageJul222026at08_35_58AM.png', // Caribbean Empire Hub
-  7: 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/3eca7944b_55566235-dd03-4817-aa5b-e7ccaad34af8.png', // Princes Town
+  0: '/game/213bc8392_ChatGPTImageJul222026at07_26_37AM.webp', // San Fernando
+  2: '/game/4433d69fa_ChatGPTImageJul222026at07_39_54AM.webp', // Port of Spain
+  3: '/game/a75fa861c_ChatGPTImageJul222026at07_42_41AM.webp', // Maracas Beach
+  4: '/game/baf1ba7ae_ChatGPTImageJul222026at08_28_02AM.webp', // Debe
+  5: '/game/c7d5f4af7_ChatGPTImageJul222026at08_32_42AM.webp', // Queen's Park Savannah
+  6: '/game/44af1a612_ChatGPTImageJul222026at08_35_58AM.webp', // Caribbean Empire Hub
+  7: '/game/3eca7944b_55566235-dd03-4817-aa5b-e7ccaad34af8.webp', // Princes Town
 };
 const DEFAULT_IMG = LOCATION_IMAGES[0];
 

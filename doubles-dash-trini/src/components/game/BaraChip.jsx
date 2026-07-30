@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
 
-const BARA_IMG = 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/2fd0b78bb_33E8AE6E-167F-424E-8143-D57BA9D6E8D2.png';
+const BARA_IMG = '/game/2fd0b78bb_33E8AE6E-167F-424E-8143-D57BA9D6E8D2.webp';
 
 export default function BaraChip({ className = '' }) {
   return (

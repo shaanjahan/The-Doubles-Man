@@ -25,7 +25,7 @@ export default function CharacterSetup() {
     <div className="max-w-md mx-auto px-4 pt-12 pb-10 text-center">
       <div className="flex justify-center mb-2 animate-[pop-in_0.5s_ease-out_both]">
         <Image
-          src="https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/bfc712c85_33E8AE6E-167F-424E-8143-D57BA9D6E8D2.png"
+          src="/game/bfc712c85_33E8AE6E-167F-424E-8143-D57BA9D6E8D2.webp"
           alt="Bara"
           className="w-20 h-20 rounded-2xl object-cover ring-2 ring-tropic-gold shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
           fittingType="fill"

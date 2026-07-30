@@ -9,7 +9,7 @@ import { Image } from '@/components/ui/image';
 import ProfileSection from '@/components/game/ProfileSection';
 import HowToPlayButton from '@/components/game/HowToPlayButton';
 
-const HUB_BG = 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/0d9719541_1336D320-FC46-4E41-BD87-2AACAC7E4A74.png';
+const HUB_BG = '/game/0d9719541_1336D320-FC46-4E41-BD87-2AACAC7E4A74.webp';
 
 function QuickLink({ to, label, emoji }) {
   return (

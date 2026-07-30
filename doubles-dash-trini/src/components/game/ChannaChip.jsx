@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
 
-const CHANNA_IMG = 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/d2ad2ce82_D24158B8-5444-462D-AAF4-8D28CD0594FA.png';
+const CHANNA_IMG = '/game/d2ad2ce82_D24158B8-5444-462D-AAF4-8D28CD0594FA.webp';
 
 export default function ChannaChip({ className = '' }) {
   return (

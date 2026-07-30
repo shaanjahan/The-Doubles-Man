@@ -1,6 +1,6 @@
 import { Image } from '@/components/ui/image';
 
-const LOGO_URL = 'https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/6b677e427_A36ED237-6A52-436C-A969-12B05F2D0EFD.png';
+const LOGO_URL = '/game/6b677e427_A36ED237-6A52-436C-A969-12B05F2D0EFD.webp';
 
 export default function SplashScreen() {
   return (

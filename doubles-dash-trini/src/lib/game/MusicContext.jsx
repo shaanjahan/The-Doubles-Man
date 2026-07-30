@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 const THEME_TRACK =
-  'https://media.base44.com/files/public/6a5fd3358a1c9fbb7f503fd5/3e77bec34_Calypso_Raga_2026-07-22T011610.mp3';
+  '/game/3e77bec34_Calypso_Raga_2026-07-22T011610.mp3';
 
 const MusicContext = createContext(null);
 

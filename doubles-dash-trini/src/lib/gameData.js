@@ -72,22 +72,22 @@ export const LOCATIONS = [
 ];
 
 export const BUSINESS_TIERS = [
-  { tier: 0, name: "Doubles Bike", emoji: "🏍️", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/f3998ba40_C5615C5C-7437-47CA-8E2E-E15D68A8FA44.png", cost: 0 },
-  { tier: 1, name: "Doubles Stand", emoji: "🛒", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/ac997e204_1784D90D-6B0D-4A2F-BFE8-148384171E50.png", cost: 3000 },
-  { tier: 3, name: "Roti Shop", emoji: "🏪", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/ac3495038_D538FA13-5197-4EB7-B4B6-F07D4DDD6F0E.png", cost: 20000 },
-  { tier: 5, name: "Doubles Factory", emoji: "🏭", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/3dfc308c7_4BFD8695-F32F-4C9F-92CE-ABEAAFA5CA05.png", cost: 180000 },
-  { tier: 6, name: "Doubles Monarch", emoji: "👑", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/6cd115be2_243B6729-72C2-4B67-B6E2-340AEC2037AE2.png", cost: 500000 },
+  { tier: 0, name: "Doubles Bike", emoji: "🏍️", image: "/game/f3998ba40_C5615C5C-7437-47CA-8E2E-E15D68A8FA44.webp", cost: 0 },
+  { tier: 1, name: "Doubles Stand", emoji: "🛒", image: "/game/ac997e204_1784D90D-6B0D-4A2F-BFE8-148384171E50.webp", cost: 3000 },
+  { tier: 3, name: "Roti Shop", emoji: "🏪", image: "/game/ac3495038_D538FA13-5197-4EB7-B4B6-F07D4DDD6F0E.webp", cost: 20000 },
+  { tier: 5, name: "Doubles Factory", emoji: "🏭", image: "/game/3dfc308c7_4BFD8695-F32F-4C9F-92CE-ABEAAFA5CA05.webp", cost: 180000 },
+  { tier: 6, name: "Doubles Monarch", emoji: "👑", image: "/game/6cd115be2_243B6729-72C2-4B67-B6E2-340AEC2037AE2.webp", cost: 500000 },
 ];
 
 export const MAGIC_SAUCES = [
-  { id: "golden_tamarind", name: "Golden Tamarind", emoji: "🟡", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/bb36eed07_Golden_Tamarind.png", rarity: "epic", desc: "Double coins earned this round." },
-  { id: "ghost_pepper", name: "Ghost Pepper Sauce", emoji: "👻", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/be84480d2_9AE7316C-0167-4E2C-A1EB-1E28032C849F.PNG", rarity: "rare", desc: "Slows customer arrivals." },
-  { id: "carnival_sauce", name: "Carnival HOT Sauce", emoji: "🎉", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/fc70cf3c6_3F582558-CE3D-4C70-AA4C-9E50B2AC71A2.png", rarity: "rare", desc: "Makes everyone happier (more patience)." },
-  { id: "shadow_beni_spirit", name: "Shadow Beni", emoji: "✨", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/1f78a854f_D61078D1-BA10-4CD5-97E8-02664E50B91F.png", rarity: "epic", desc: "Auto-completes one ingredient per order." },
-  { id: "lucky_sauce", name: "Lucky Sauce", emoji: "🍀", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/55377e651_3603CB56-3D37-4392-AF95-915E544F12F3.png", rarity: "common", desc: "Higher gem rewards." },
-  { id: "turbo_sauce", name: "Turbo Sauce", emoji: "⚡", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/2cbab0928_10E820B2-881B-4F87-98B7-0AD31D961375.png", rarity: "rare", desc: "Preparation speed doubles." },
-  { id: "double_trouble", name: "Double Trouble", emoji: "💞", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/87d2bf3f7_BA9B8926-09AF-4A0D-8AF9-5DE3B8CD0C9E.png", rarity: "legendary", desc: "Serve two customers at once." },
-  { id: "pepper_fairy", name: "Pepper Fairy", emoji: "🧚", image: "https://media.base44.com/images/public/6a5fd3358a1c9fbb7f503fd5/497859aec_085533C8-7925-4ED3-9D7A-10031E8E3895.png", rarity: "common", desc: "+30% tips from every customer." },
+  { id: "golden_tamarind", name: "Golden Tamarind", emoji: "🟡", image: "/game/bb36eed07_Golden_Tamarind.webp", rarity: "epic", desc: "Double coins earned this round." },
+  { id: "ghost_pepper", name: "Ghost Pepper Sauce", emoji: "👻", image: "/game/be84480d2_9AE7316C-0167-4E2C-A1EB-1E28032C849F.webp", rarity: "rare", desc: "Slows customer arrivals." },
+  { id: "carnival_sauce", name: "Carnival HOT Sauce", emoji: "🎉", image: "/game/fc70cf3c6_3F582558-CE3D-4C70-AA4C-9E50B2AC71A2.webp", rarity: "rare", desc: "Makes everyone happier (more patience)." },
+  { id: "shadow_beni_spirit", name: "Shadow Beni", emoji: "✨", image: "/game/1f78a854f_D61078D1-BA10-4CD5-97E8-02664E50B91F.webp", rarity: "epic", desc: "Auto-completes one ingredient per order." },
+  { id: "lucky_sauce", name: "Lucky Sauce", emoji: "🍀", image: "/game/55377e651_3603CB56-3D37-4392-AF95-915E544F12F3.webp", rarity: "common", desc: "Higher gem rewards." },
+  { id: "turbo_sauce", name: "Turbo Sauce", emoji: "⚡", image: "/game/2cbab0928_10E820B2-881B-4F87-98B7-0AD31D961375.webp", rarity: "rare", desc: "Preparation speed doubles." },
+  { id: "double_trouble", name: "Double Trouble", emoji: "💞", image: "/game/87d2bf3f7_BA9B8926-09AF-4A0D-8AF9-5DE3B8CD0C9E.webp", rarity: "legendary", desc: "Serve two customers at once." },
+  { id: "pepper_fairy", name: "Pepper Fairy", emoji: "🧚", image: "/game/497859aec_085533C8-7925-4ED3-9D7A-10031E8E3895.webp", rarity: "common", desc: "+30% tips from every customer." },
 ];
 
 export const RARITY_STYLES = {
