@@ -125,9 +125,17 @@ for (const [cbid, r] of targets) {
 
   const stats = jobj(r['stats']);
   const missions = buildDefaultMissions();
+  // Avatars: Base44 CDN URLs are rehosted into Storage (avatars/<created_by_id>.png)
+  // by scripts/rehost-avatars.ts BEFORE cancellation; point at that stable URL.
+  // Emoji/non-URL values pass through. (Run rehost-avatars.ts first, or these
+  // links 404 once Base44 is gone.)
+  const rawAvatar = (r['avatarEmoji'] || '').trim();
+  const avatar = rawAvatar.includes('base44.com')
+    ? `${URL}/storage/v1/object/public/avatars/${cbid}.png`
+    : (rawAvatar || null);
   const playerPatch = {
     display_name: r['displayName'] || 'New Vendor',
-    avatar_emoji: r['avatarEmoji'] || null,
+    avatar_emoji: avatar,
     needs_setup: bool(r['needsSetup']),
     has_seen_tutorial: bool(r['hasSeenTutorial']),
     level: int(r['level']) || 1,
@@ -176,6 +184,11 @@ for (const [cbid, r] of targets) {
   console.log(`      coins ${player.coins}->${playerPatch.coins}, level ${player.level}->${playerPatch.level}, ` +
     `upgrades=${Object.keys(playerPatch.upgrades).length} businesses=${playerPatch.businesses.length} ` +
     `sauces=${playerPatch.magic_sauces.length} achievements=${Object.keys(playerPatch.achievement_progress).length}`);
+  console.log(`      CLAMP last_business_collect ${r['lastBusinessCollect'] || '∅'} -> ${playerPatch.last_business_collect}`);
+  console.log(`      CLAMP last_login_at         ${r['lastLoginAt'] || '∅'} -> ${playerPatch.last_login_at}`);
+  console.log(`      CLAMP last_daily_claim      ${r['lastDailyClaim'] || '∅'} -> ${playerPatch.last_daily_claim}`);
+  console.log(`      REROLL missions fresh (d=${playerPatch.daily_missions.length}/w=${playerPatch.weekly_missions.length}/m=${playerPatch.monthly_missions.length}); RESET rolling stat counters -> 0`);
+  console.log(`      AVATAR ${rawAvatar.includes('base44.com') ? '-> ' + avatar + ' (requires rehost-avatars.ts)' : (avatar ?? '(none)')}`);
   if (APPLY) {
     const e1 = (await admin.from('players').update(playerPatch).eq('user_id', uid)).error;
     const e2 = (await admin.from('player_stats').update(statsPatch).eq('player_id', player.id)).error;

@@ -106,9 +106,14 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   by default;** `--apply` writes. Note: because it's an absolute SET to the
   snapshot, any new-app play **before** the restore runs is overwritten — hence
   the authoritative pull happens right before cutover.
-- **Known follow-up:** some `avatar_emoji` values are Base44 CDN URLs
-  (`media.base44.com/…`) that die when Base44 is torn down — restored as-is for
-  now; **re-host the images before cancelling Base44.**
+- **Avatars (rehost before cancellation):** all 8 testers' `avatar_emoji` are
+  Base44 CDN URLs (`media.base44.com/…`) that die when Base44 is torn down.
+  `scripts/rehost-avatars.ts` (run `--apply` **while Base44 is live**) copies
+  each into the public `avatars` Storage bucket (migration
+  `20260730120000_avatars_bucket.sql`) at `avatars/<created_by_id>.png`;
+  `seed-testers.ts` writes that Storage public URL into `avatar_emoji` instead
+  of the CDN link. Keyed by `created_by_id` so it works for all 8 regardless of
+  sign-in timing — must run before Base44 goes away, not per-tester-at-signin.
 - **Exports are NOT in the repo** (real tester emails) — `.gitignore`d by name +
   `/data/` + `Player_export.csv` / `*_export.csv` (NOT `*.csv`, which would
   swallow legit game-data CSVs).

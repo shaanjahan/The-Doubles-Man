@@ -21,3 +21,5 @@ The Doublesman Data*.csv
 # putting these under data/; these patterns catch a repo-root drop too.
 Player_export.csv
 *_export.csv
+# Tester avatar images pulled from Base44 (to be rehosted to Supabase Storage)
+The Doubles Man images/
