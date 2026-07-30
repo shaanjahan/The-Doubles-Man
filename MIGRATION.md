@@ -90,13 +90,15 @@ the ~8 real testers, via `scripts/seed-testers.ts`.
   `--apply` writes.
 - **The CSV is NOT in the repo** (real tester emails) — it's `.gitignore`d by
   name + `/data/` (NOT `*.csv`, which would swallow legit game-data CSVs).
-- **Keys never on a command line.** Put `SROLE` (service_role), `CSV` (export
-  path), and the Supabase Management-API PAT in a git-ignored `.env`, then
+- **Keys never on a command line.** Put the Management-API PAT (`SUPABASE_PAT`)
+  and the export path (`CSV`) in a git-ignored `.env`, then
   `set -a; source .env; set +a` before running the seed script or applying a
-  migration via `curl … api.supabase.com`. Inline `SROLE=… deno run` /
-  `PAT=… curl` forms get logged to `~/.zsh_history` — that is how the original
-  PAT leaked (service_role stayed clean only because it's fetched via the
-  `supabase` CLI, never inline). Do not reintroduce inline-key invocations.
+  migration via `curl … api.supabase.com`. **service_role is NOT stored at
+  rest** — scripts fetch it live via the logged-in `supabase` CLI
+  (`pick_key`), so it never touches a command line or a file. Inline
+  `SROLE=… deno run` / `PAT=… curl` forms get logged to `~/.zsh_history` —
+  that is how the original PAT leaked (service_role stayed clean precisely
+  because it was CLI-fetched, never inline). Do not reintroduce inline keys.
 - Applied so far: `ptsudarshan@icloud.com` (the dev's account, seeded during
   testing). The other 7 are queued for when they sign in.
 
