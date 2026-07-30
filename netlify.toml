@@ -1,0 +1,21 @@
+# Netlify build config for the doubles-dash-trini frontend (Vite + React,
+# BrowserRouter). The app is in a subdirectory of the repo, so `base` points
+# Netlify there; `publish` is relative to base (=> doubles-dash-trini/dist).
+[build]
+  base = "doubles-dash-trini"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Env vars (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) are set in the Netlify UI,
+# NOT here — they bake into the client bundle at build time. The anon key is a
+# publishable key (RLS-protected), so shipping it to the browser is expected.
+
+# SPA fallback: BrowserRouter routes (e.g. /login, deep links, refreshes) must
+# resolve to index.html rather than 404 on Netlify.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
