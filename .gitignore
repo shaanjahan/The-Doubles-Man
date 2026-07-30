@@ -10,3 +10,7 @@ supabase/.temp/
 
 # Node
 node_modules/
+
+# Tester data exports (contain real tester emails) — pass the path via the CSV
+# env var to scripts/seed-testers.ts; the file lives OUTSIDE the repo.
+*.csv

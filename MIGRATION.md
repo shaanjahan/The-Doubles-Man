@@ -71,9 +71,27 @@ Base44 stays live and paid as rollback insurance until the new stack has
 run clean for a few weeks — **do not cancel the Base44 plan on the original
 schedule.**
 
-**Data:** NOT migrating Base44's CSVs — with under 10 testers and sandbox-
-only purchases, recreating accounts by hand is safer than debugging an
-import. CSVs exported and kept as schema reference only.
+**Data (updated 2026-07-29):** a **partial, seed-after-sign-in** migration for
+the ~8 real testers, via `scripts/seed-testers.ts`.
+- The Base44 "Player Activity" CSV is a **time series** (one row per player per
+  backup run); most rows are create-race throwaway profiles. The script dedupes
+  to each **email's** most-progressed row (>=3 rounds = the 8 real testers).
+- It restores **currency / level / xp / tier / location / VIP / streak +
+  lifetime stats only** — NOT upgrades / magic_sauces / businesses /
+  achievements (those aren't in the Activity export; a full restore would need
+  the full Player *entity* export).
+- Matches by **email** to the tester's Supabase account, which must already
+  exist (they've signed into the live app — so run this AFTER Netlify cutover,
+  per tester, as they sign in). 5 of 8 use Apple private-relay emails, so they
+  must return via Sign in with Apple.
+- **Idempotent + non-clobbering:** absolute SET (not add); seeds only a player
+  still at creation defaults (250/10/L1), so re-runs are a no-op and never
+  overwrite post-seed play (`--force` overrides). **Dry-run by default;**
+  `--apply` writes.
+- **The CSV is NOT in the repo** (real tester emails) — it's `.gitignore`d
+  (`*.csv`); pass its path via the `CSV` env var, `SROLE` via env.
+- Applied so far: `ptsudarshan@icloud.com` (the dev's account, seeded during
+  testing). The other 7 are queued for when they sign in.
 
 **Kill, don't port:** the `grantIAP` "web-preview" purchase simulator in
 `usePlayer.js` grants currency with no payment. No web surface exists
