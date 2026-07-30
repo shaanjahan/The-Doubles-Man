@@ -106,14 +106,13 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   by default;** `--apply` writes. Note: because it's an absolute SET to the
   snapshot, any new-app play **before** the restore runs is overwritten — hence
   the authoritative pull happens right before cutover.
-- **Avatars (rehost before cancellation):** all 8 testers' `avatar_emoji` are
-  Base44 CDN URLs (`media.base44.com/…`) that die when Base44 is torn down.
-  `scripts/rehost-avatars.ts` (run `--apply` **while Base44 is live**) copies
-  each into the public `avatars` Storage bucket (migration
-  `20260730120000_avatars_bucket.sql`) at `avatars/<created_by_id>.png`;
-  `seed-testers.ts` writes that Storage public URL into `avatar_emoji` instead
-  of the CDN link. Keyed by `created_by_id` so it works for all 8 regardless of
-  sign-in timing — must run before Base44 goes away, not per-tester-at-signin.
+- **Avatars — DONE (2026-07-30):** all 8 testers' `avatar_emoji` were Base44 CDN
+  URLs. `scripts/rehost-avatars.ts --apply` copied each into the public
+  `avatars` Storage bucket (migration `20260730120000_avatars_bucket.sql`) at
+  `avatars/<created_by_id>.png`; verified 8/8, one confirmed serving HTTP 200.
+  `seed-testers.ts` writes that Storage public URL into `avatar_emoji` (keyed by
+  `created_by_id`, so it covers all 8 regardless of sign-in timing). These are
+  still full-size PNGs (per-user, rarely fetched — WebP is an optional follow-up).
 - **Exports are NOT in the repo** (real tester emails) — `.gitignore`d by name +
   `/data/` + `Player_export.csv` / `*_export.csv` (NOT `*.csv`, which would
   swallow legit game-data CSVs).
@@ -137,16 +136,51 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   deno run --allow-net --allow-read --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```
-- Status: nobody is full-restored yet. `ptsudarshan@icloud.com` was
-  *partial*-seeded during earlier testing (logged `scope='partial'`), so the
-  full pass will pick it up and overwrite it with the Player-entity snapshot.
-  The other 7 are queued for when they sign in. The full-restore script is
-  verified via `deno check` + an end-to-end dry-run (real Player export +
-  synthetic Users join); it needs the real `Users_export.csv` to run for real.
+- **Status (2026-07-30):** frontend live on `thedoublesman.netlify.app`; game
+  art + tester avatars rehosted off Base44. Full-restore script verified against
+  **real** data (Player export + Activity-CSV email join, 8/8 resolve; 1 of 8
+  signed in so far — the dev's account, logged `partial`, eligible for the full
+  pass). Nobody is full-restored yet — the restore runs post-cutover, per tester,
+  gated on `--apply`.
 
 **Kill, don't port:** the `grantIAP` "web-preview" purchase simulator in
 `usePlayer.js` grants currency with no payment. No web surface exists
 anymore — delete it rather than carrying it into Supabase.
+
+## Cutover runbook
+
+Ordered flip Base44 → Supabase + Netlify. **Base44 stays live as rollback
+insurance until the very last step.**
+
+**Pre-cutover** (Base44 still serving prod):
+- ✅ Backend on Supabase (functions, CORS, RLS, grants). ✅ Frontend on the
+  Netlify subdomain (env vars, verified render). ✅ Game art → Netlify `/game/`;
+  tester avatars → Storage. ✅ Auth allowlist has `thedoublesman.com/**` + the
+  `.netlify.app` subdomain.
+- ⬜ Manual QA on `thedoublesman.netlify.app`: every screen's art, login (email +
+  Apple), a full round, a purchase.
+
+**The flip** (keep the pull→flip gap small — a brief tester freeze is ideal):
+1. **Fresh `Player_export.csv` re-pull from Base44 — immediately before the DNS
+   flip.** After the flip, testers play on Supabase and their Base44 state is
+   frozen, so anything between pull and flip is lost. The Activity CSV (email
+   join) is stable — no re-pull. *Verify:* dedup → 8 testers, levels/coins sane.
+2. **DNS flip** `thedoublesman.com` → Netlify (add custom domain in Netlify, then
+   update the registrar). *Verify:* the domain (cache-busted) serves the Netlify
+   build not Base44; TLS issued; images load from `/game/`.
+3. **Smoke test on `thedoublesman.com`:** Apple + email login, player loads, a
+   round persists (`finalize-round`), shop + art render, no console errors.
+
+**Restore** (post-flip, as testers return):
+4. Tester signs into `thedoublesman.com` → Supabase auth account is created.
+5. `seed-testers.ts` **dry-run** for them (confirm `WOULD RESTORE` + clamp lines),
+   then **`--apply`**. *Verify per tester:* coins/level/tier + businesses/
+   upgrades/sauces restored, avatar shows, `player_seed_log.scope='full'`. Repeat
+   for all 8; the scope-log makes re-runs safe no-ops.
+
+**Decommission** (point of no return — last): only after all 8 are restored +
+verified and a stability window passes, cancel Base44. *Rollback before this:*
+point DNS back to Base44 (still live) and the old world returns instantly.
 
 ## Supabase project
 
