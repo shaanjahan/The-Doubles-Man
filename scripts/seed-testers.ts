@@ -6,10 +6,11 @@
 //   set -a; source .env; set +a   # loads CSV (path only — no secret)
 //   deno run --allow-net --allow-read --allow-run --allow-env scripts/seed-testers.ts [--apply]
 //
-// service_role is fetched LIVE from the logged-in `supabase` CLI (run
-// `supabase login` once) — it is NEVER passed as an env var or on the command
-// line, so it never lands in shell history. Only CSV (the export path, not a
-// secret) comes from env/.env. Partial restore: currency / level / tier /
+// service_role is fetched LIVE via the `supabase` CLI (authenticated by
+// SUPABASE_PAT from .env, or an existing `supabase login`) — it is NEVER passed
+// as an env var or on the command line, so it never lands in shell history.
+// Only CSV (the export path, not a secret) comes from env/.env. Partial
+// restore: currency / level / tier /
 // location / vip / streak + lifetime stats. Does NOT touch upgrades /
 // magic_sauces / businesses / achievements (not in this export).
 
@@ -25,11 +26,16 @@ const FORCE = Deno.args.includes('--force'); // re-seed even if already in the s
 // so the RLS-bypass key never appears in an invocation / shell history. Tries
 // PATH first, then the Homebrew path. Needs --allow-run and `supabase login`.
 async function fetchServiceRole(): Promise<string> {
+  // Authenticate the CLI subprocess with the PAT from .env if present — the CLI
+  // honors SUPABASE_ACCESS_TOKEN and prefers it over any stored `supabase login`
+  // (which breaks whenever that PAT is rotated). Merged onto the inherited env.
+  const pat = Deno.env.get('SUPABASE_PAT') ?? Deno.env.get('SUPABASE_ACCESS_TOKEN');
+  const env: Record<string, string> = pat ? { SUPABASE_ACCESS_TOKEN: pat } : {};
   for (const bin of ['supabase', '/opt/homebrew/bin/supabase']) {
     try {
       const out = await new Deno.Command(bin, {
         args: ['projects', 'api-keys', '--project-ref', REF, '-o', 'json'],
-        stdout: 'piped', stderr: 'null',
+        stdout: 'piped', stderr: 'null', env,
       }).output();
       if (!out.success) continue;
       const parsed = JSON.parse(new TextDecoder().decode(out.stdout));
@@ -38,7 +44,7 @@ async function fetchServiceRole(): Promise<string> {
       if (k?.api_key) return k.api_key as string;
     } catch { /* try next candidate path */ }
   }
-  throw new Error('could not resolve service_role via `supabase` CLI — run `supabase login`');
+  throw new Error('could not resolve service_role — set SUPABASE_PAT in .env (and source it) or run `supabase login`');
 }
 
 const SROLE = await fetchServiceRole();

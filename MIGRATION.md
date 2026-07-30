@@ -94,18 +94,21 @@ the ~8 real testers, via `scripts/seed-testers.ts`.
   never passed in the invocation** — `seed-testers.ts` fetches it itself from
   the logged-in `supabase` CLI (its `fetchServiceRole()`; the bash test scripts
   use `pick_key`). Only the export path (`CSV`, not a secret) and the
-  Management-API PAT (`SUPABASE_PAT`, for migration `curl`s) live in a
-  git-ignored `.env`. Canonical rollout command:
+  Management-API PAT (`SUPABASE_PAT`, for migration `curl`s AND to authenticate
+  the CLI) live in a git-ignored `.env`. Canonical rollout command:
 
   ```bash
-  set -a; source .env; set +a   # CSV path only — no secret
+  set -a; source .env; set +a   # loads CSV path + SUPABASE_PAT
   deno run --allow-net --allow-read --allow-run --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```
 
-  Requires `supabase login` once. Do **not** reintroduce inline-key forms
-  (`SROLE=… deno run`, `PAT=… curl`) — they get logged to `~/.zsh_history`,
-  which is exactly how the original PAT leaked.
+  `fetchServiceRole()` authenticates the CLI subprocess with `SUPABASE_PAT`
+  (via `SUPABASE_ACCESS_TOKEN`), so **no interactive `supabase login` is
+  needed** — and rotating the PAT (which logs the stored CLI login out) does
+  not break the script as long as `.env` holds the current PAT. Do **not**
+  reintroduce inline-key forms (`SROLE=… deno run`, `PAT=… curl`) — they get
+  logged to `~/.zsh_history`, which is exactly how the original PAT leaked.
 - Applied so far: `ptsudarshan@icloud.com` (the dev's account, seeded during
   testing). The other 7 are queued for when they sign in.
 
