@@ -90,25 +90,26 @@ the ~8 real testers, via `scripts/seed-testers.ts`.
   `--apply` writes.
 - **The CSV is NOT in the repo** (real tester emails) — it's `.gitignore`d by
   name + `/data/` (NOT `*.csv`, which would swallow legit game-data CSVs).
-- **Keys never on a command line.** `service_role` is **NOT stored at rest and
-  never passed in the invocation** — `seed-testers.ts` fetches it itself from
-  the logged-in `supabase` CLI (its `fetchServiceRole()`; the bash test scripts
-  use `pick_key`). Only the export path (`CSV`, not a secret) and the
-  Management-API PAT (`SUPABASE_PAT`, for migration `curl`s AND to authenticate
-  the CLI) live in a git-ignored `.env`. Canonical rollout command:
+- **Keys live in `.env`, never on a command line, and each task carries the
+  narrowest key it needs.** Two credentials sit in a git-ignored `.env`, loaded
+  via `set -a; source .env; set +a` (never inline — inline assignments get
+  logged to `~/.zsh_history`, which is how the original PAT leaked):
+  - **`SROLE`** — the **project** `service_role` key. Used by
+    `scripts/seed-testers.ts`, which only writes rows in this one project, so it
+    carries this one project's key rather than an account-wide token.
+  - **`SUPABASE_PAT`** — the **org-scoped** Management-API token. Broader (it
+    can reach every project in the account and derive their keys), so it is used
+    **only** by the migration workflow that needs DDL via
+    `curl … api.supabase.com` — `service_role` can't run DDL through PostgREST.
+    `seed-testers.ts` does not touch it.
+
+  Canonical rollout command:
 
   ```bash
-  set -a; source .env; set +a   # loads CSV path + SUPABASE_PAT
-  deno run --allow-net --allow-read --allow-run --allow-env \
+  set -a; source .env; set +a   # loads SROLE + CSV path
+  deno run --allow-net --allow-read --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```
-
-  `fetchServiceRole()` authenticates the CLI subprocess with `SUPABASE_PAT`
-  (via `SUPABASE_ACCESS_TOKEN`), so **no interactive `supabase login` is
-  needed** — and rotating the PAT (which logs the stored CLI login out) does
-  not break the script as long as `.env` holds the current PAT. Do **not**
-  reintroduce inline-key forms (`SROLE=… deno run`, `PAT=… curl`) — they get
-  logged to `~/.zsh_history`, which is exactly how the original PAT leaked.
 - Applied so far: `ptsudarshan@icloud.com` (the dev's account, seeded during
   testing). The other 7 are queued for when they sign in.
 

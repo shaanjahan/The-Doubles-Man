@@ -3,51 +3,30 @@
 // exist — i.e. they've signed into the new app). Dedups the time-series CSV to
 // each email's most-progressed row. Dry-run by default; pass --apply to write.
 //
-//   set -a; source .env; set +a   # loads CSV (path only — no secret)
-//   deno run --allow-net --allow-read --allow-run --allow-env scripts/seed-testers.ts [--apply]
+//   set -a; source .env; set +a   # loads SROLE (service_role) + CSV path
+//   deno run --allow-net --allow-read --allow-env scripts/seed-testers.ts [--apply]
 //
-// service_role is fetched LIVE via the `supabase` CLI (authenticated by
-// SUPABASE_PAT from .env, or an existing `supabase login`) — it is NEVER passed
-// as an env var or on the command line, so it never lands in shell history.
-// Only CSV (the export path, not a secret) comes from env/.env. Partial
-// restore: currency / level / tier /
-// location / vip / streak + lifetime stats. Does NOT touch upgrades /
-// magic_sauces / businesses / achievements (not in this export).
+// SROLE is the PROJECT service_role key (bypasses RLS for this one project) —
+// the narrowest credential the seed task needs. It comes from a git-ignored
+// .env sourced via `set -a; source .env; set +a`, NEVER inline on the command
+// line (which would log it to shell history). The org-scoped Management-API PAT
+// is deliberately NOT used here — the seed script only writes rows in one
+// project, so it should carry that project's key, not an account-wide token.
+// Partial restore: currency / level / tier / location / vip / streak + lifetime
+// stats. Does NOT touch upgrades / magic_sauces / businesses / achievements
+// (not in this export).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const REF = 'zongwrqawgaipabdgmwe';
 const URL = `https://${REF}.supabase.co`;
-const CSV = Deno.env.get('CSV')!;
+const SROLE = Deno.env.get('SROLE');
+const CSV = Deno.env.get('CSV');
+if (!SROLE) throw new Error('SROLE (project service_role) not set — run: set -a; source .env; set +a');
+if (!CSV) throw new Error('CSV (export path) not set — put it in .env or pass CSV=… inline');
 const APPLY = Deno.args.includes('--apply');
 const FORCE = Deno.args.includes('--force'); // re-seed even if already in the seed log
 
-// Fetch service_role from the logged-in `supabase` CLI instead of an env var,
-// so the RLS-bypass key never appears in an invocation / shell history. Tries
-// PATH first, then the Homebrew path. Needs --allow-run and `supabase login`.
-async function fetchServiceRole(): Promise<string> {
-  // Authenticate the CLI subprocess with the PAT from .env if present — the CLI
-  // honors SUPABASE_ACCESS_TOKEN and prefers it over any stored `supabase login`
-  // (which breaks whenever that PAT is rotated). Merged onto the inherited env.
-  const pat = Deno.env.get('SUPABASE_PAT') ?? Deno.env.get('SUPABASE_ACCESS_TOKEN');
-  const env: Record<string, string> = pat ? { SUPABASE_ACCESS_TOKEN: pat } : {};
-  for (const bin of ['supabase', '/opt/homebrew/bin/supabase']) {
-    try {
-      const out = await new Deno.Command(bin, {
-        args: ['projects', 'api-keys', '--project-ref', REF, '-o', 'json'],
-        stdout: 'piped', stderr: 'null', env,
-      }).output();
-      if (!out.success) continue;
-      const parsed = JSON.parse(new TextDecoder().decode(out.stdout));
-      const keys = Array.isArray(parsed) ? parsed : parsed.keys;
-      const k = keys.find((x: { id?: string }) => x.id === 'service_role');
-      if (k?.api_key) return k.api_key as string;
-    } catch { /* try next candidate path */ }
-  }
-  throw new Error('could not resolve service_role — set SUPABASE_PAT in .env (and source it) or run `supabase login`');
-}
-
-const SROLE = await fetchServiceRole();
 const admin = createClient(URL, SROLE, { auth: { persistSession: false } });
 
 // --- parse CSV (quote-aware enough for this export) ---
