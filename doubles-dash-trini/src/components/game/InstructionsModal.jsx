@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronRight } from 'lucide-react';
 import PageTour from './PageTour';
 import {
@@ -26,9 +27,19 @@ export default function InstructionsModal({ open, onClose }) {
     return <PageTour steps={cur.steps} onClose={() => setActive(null)} finishLabel="Back to list" />;
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm px-5 animate-[fadeIn_0.2s_ease-out]">
-      <div className="relative w-full max-w-sm bg-fire-tile rounded-3xl p-5 shadow-2xl border border-white/10 animate-[slideUp_0.25s_ease-out]">
+  // Rendered through a portal to <body> so it can never be positioned relative
+  // to (or clipped by) a transformed/overflow-hidden ancestor like the Hub hero
+  // card — otherwise `fixed inset-0` anchors to that card and the modal shows
+  // as a cut-off panel at the top instead of a centered full-screen window.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm px-5 py-6 animate-[fadeIn_0.2s_ease-out]"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-fire-tile rounded-3xl p-5 shadow-2xl border border-white/10 animate-[slideUp_0.25s_ease-out]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -64,6 +75,7 @@ export default function InstructionsModal({ open, onClose }) {
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

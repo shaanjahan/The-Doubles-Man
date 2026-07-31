@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 // Small pulsing "tap here" tag dropped onto the exact button a step highlights.
@@ -24,9 +25,12 @@ export default function PageTour({ steps, onClose, finishLabel = "Got it" }) {
     else setStep((s) => s + 1);
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm px-5 animate-[fadeIn_0.2s_ease-out]">
-      <div className="relative w-full max-w-sm bg-fire-tile rounded-3xl p-5 shadow-2xl border border-white/10 animate-[slideUp_0.25s_ease-out]">
+  // Portal to <body> for the same reason as InstructionsModal: this fixed
+  // overlay must anchor to the viewport, not to whatever (possibly transformed /
+  // overflow-hidden) ancestor rendered it — e.g. the Hub hero card.
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm px-5 py-6 animate-[fadeIn_0.2s_ease-out]">
+      <div className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-fire-tile rounded-3xl p-5 shadow-2xl border border-white/10 animate-[slideUp_0.25s_ease-out]">
         <button
           type="button"
           onClick={onClose}
@@ -69,6 +73,7 @@ export default function PageTour({ steps, onClose, finishLabel = "Got it" }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
