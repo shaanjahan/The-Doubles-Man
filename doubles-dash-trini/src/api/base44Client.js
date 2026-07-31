@@ -189,7 +189,18 @@ const entities = {
 const functions = {
   async invoke(name, body) {
     const { data, error } = await supabase.functions.invoke(name, { body: body ?? {} });
-    if (error) throw error;
+    if (error) {
+      // Surface the function's own { error } body — supabase-js otherwise throws
+      // the useless generic "Edge Function returned a non-2xx status code".
+      let detail = null;
+      try { detail = await error.context?.json?.(); } catch { /* body not JSON */ }
+      if (detail?.error) {
+        const e = new Error(detail.error);
+        e.status = error.context?.status;
+        throw e;
+      }
+      throw error;
+    }
     return { data }; // match Base44's { data } shape
   },
 };

@@ -61,14 +61,21 @@ serveWithCors(async (req) => {
     }
 
     // Verify Apple's cert chain + signature. Any failure => reject (never grant).
+    // Each rejection is logged with its reason so the Dashboard function logs
+    // show exactly why a live purchase bounced (the client only sees a generic
+    // non-2xx otherwise).
     let tx: any;
     try {
       tx = await decodeTransaction(jws);
-    } catch (_e) {
+    } catch (e) {
+      console.error('iap reject: signature verify failed:', e instanceof Error ? e.message : String(e));
       return Response.json({ error: 'Invalid transaction signature' }, { status: 400 });
     }
 
+    console.log('iap tx: bundle=%s product=%s env=%s txid=%s', tx.bundleId, tx.productId, tx.environment, tx.transactionId);
+
     if (tx.bundleId !== BUNDLE_ID) {
+      console.error('iap reject: wrong bundle id:', tx.bundleId, 'expected', BUNDLE_ID);
       return Response.json({ error: 'Wrong bundle id' }, { status: 400 });
     }
 
@@ -81,7 +88,10 @@ serveWithCors(async (req) => {
     const transactionId = String(tx.transactionId);
     const productId = String(tx.productId);
     const product = getProduct(productId);
-    if (!product) return Response.json({ error: 'Unknown product: ' + productId }, { status: 400 });
+    if (!product) {
+      console.error('iap reject: unknown product:', productId);
+      return Response.json({ error: 'Unknown product: ' + productId }, { status: 400 });
+    }
 
     const grant = computeGrant(product);
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -99,6 +109,7 @@ serveWithCors(async (req) => {
     if (rpcErr) throw rpcErr;
     if (applied?.error === 'no_player') return Response.json({ error: 'No player record' }, { status: 404 });
     if (!applied || applied.error) {
+      console.error('iap reject: grant failed:', applied?.error);
       return Response.json({ error: applied?.error || 'grant failed' }, { status: 500 });
     }
 
