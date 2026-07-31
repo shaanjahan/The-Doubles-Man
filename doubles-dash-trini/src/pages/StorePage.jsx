@@ -8,6 +8,17 @@ import CoinIcon from '@/components/CoinIcon';
 import SauceShopSection from '@/components/game/SauceShopSection';
 import { Loader2 } from 'lucide-react';
 
+// Hard allowlist: the ONLY products that may ever render in the store. These are
+// exactly the in-app purchases submitted to and under review by Apple. Nothing
+// outside this set is displayed — not on web, not while StoreKit is loading, and
+// not if getProducts() fails — so the app can never show a product that wasn't
+// submitted for review. Add an id here only after it's approved in App Store
+// Connect. (Catalog still defines coin_large / gem_small / vip so the purchase
+// verifier keeps working once/if those are submitted and approved later.)
+const APPROVED_PRODUCT_IDS = new Set([
+  'coin_small', 'coin_medium', 'gem_medium', 'gem_large', 'sauce_pack', 'starter',
+]);
+
 // Surface the real error text wherever we show a failure to the user.
 //   - e.response.data.error : Base44 backend function error body (axios
 //     rejects on non-2xx, so res?.data?.error is unreachable in a catch).
@@ -155,6 +166,9 @@ export default function StorePage() {
   const getProductsFailed = isNative && appleProductsFailed;
   const visibleAppleIds = Array.isArray(appleProducts) ? appleProducts.map((p) => p.id) : [];
   function productVisible(id) {
+    // Hard allowlist wins over everything — an unsubmitted product is never
+    // shown, regardless of platform or StoreKit state.
+    if (!APPROVED_PRODUCT_IDS.has(id)) return false;
     if (!isNative) return true;
     if (appleLoading) return true;
     if (getProductsFailed) return true;
