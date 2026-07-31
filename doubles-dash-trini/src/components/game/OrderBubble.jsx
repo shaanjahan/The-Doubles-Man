@@ -23,10 +23,10 @@ export default function OrderBubble({ order }) {
   ].filter(Boolean);
 
   return (
-    {/* Chip size vs layout: slots are ~170px wide (2-col grid). 32px chips at a
-        160px cap keep the same 4-per-row wrap as the old 28px/150px sizing
-        (4×32 + 3×4 gap + 12 pad + 2 border = 154 ≤ 160), so bigger icons don't
-        make bubbles taller or squeeze the customer art below. */}
+    // Chip size vs layout: slots are ~170px wide (2-col grid). 32px chips at a
+    // 160px cap keep the same 4-per-row wrap as the old 28px/150px sizing
+    // (4×32 + 3×4 gap + 12 pad + 2 border = 154 ≤ 160), so bigger icons don't
+    // make bubbles taller or squeeze the customer art below.
     <div className="bg-black/60 backdrop-blur rounded-2xl px-1.5 py-1 shadow-md border border-white/15 flex flex-wrap items-center justify-center gap-1 max-w-[160px] animate-[pop-in_0.35s_cubic-bezier(0.34,1.56,0.64,1)_both]">
       {chips.map((c, i) => (
         <span
