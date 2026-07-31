@@ -64,21 +64,29 @@ serveWithCors(async (req) => {
     }
 
     // Verify Apple's cert chain + signature. Any failure => reject (never grant).
-    // Each rejection is logged with its reason so the Dashboard function logs
-    // show exactly why a live purchase bounced (the client only sees a generic
-    // non-2xx otherwise).
+    // Outcomes are also recorded in iap_debug_log (reason + tx summary, never
+    // the raw JWS) because the platform logs aren't queryable from tooling.
+    const adminDbg = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const dbg = (stage: string, detail: Record<string, unknown>) =>
+      adminDbg.from('iap_debug_log').insert({ user_id: user.id, stage, detail }).then(
+        () => {}, (e: unknown) => console.error('dbg log failed:', e),
+      );
+
     let tx: any;
     try {
       tx = await decodeTransaction(jws);
     } catch (e) {
-      console.error('iap reject: signature verify failed:', e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('iap reject: signature verify failed:', msg);
+      await dbg('verify_fail', { error: msg });
       return Response.json({ error: 'Invalid transaction signature' }, { status: 400 });
     }
 
-    console.log('iap tx: bundle=%s product=%s env=%s txid=%s', tx.bundleId, tx.productId, tx.environment, tx.transactionId);
+    await dbg('decoded', { bundleId: tx.bundleId, productId: tx.productId, environment: tx.environment, transactionId: String(tx.transactionId) });
 
     if (tx.bundleId !== BUNDLE_ID) {
       console.error('iap reject: wrong bundle id:', tx.bundleId, 'expected', BUNDLE_ID);
+      await dbg('reject_bundle', { got: tx.bundleId, expected: BUNDLE_ID });
       return Response.json({ error: 'Wrong bundle id' }, { status: 400 });
     }
 
@@ -109,12 +117,14 @@ serveWithCors(async (req) => {
       p_sauce_ids: grant.sauceIds,
       p_vip: grant.vip,
     });
-    if (rpcErr) throw rpcErr;
-    if (applied?.error === 'no_player') return Response.json({ error: 'No player record' }, { status: 404 });
+    if (rpcErr) { await dbg('grant_fail', { rpc: rpcErr.message }); throw rpcErr; }
+    if (applied?.error === 'no_player') { await dbg('grant_fail', { error: 'no_player' }); return Response.json({ error: 'No player record' }, { status: 404 }); }
     if (!applied || applied.error) {
       console.error('iap reject: grant failed:', applied?.error);
+      await dbg('grant_fail', { error: applied?.error ?? null });
       return Response.json({ error: applied?.error || 'grant failed' }, { status: 500 });
     }
+    await dbg('granted', { productId, transactionId, alreadyGranted: !!applied.alreadyGranted });
 
     return Response.json({
       ok: true,

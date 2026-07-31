@@ -135,10 +135,20 @@ export default function StorePage() {
   const [appleProductsFailed, setAppleProductsFailed] = useState(false);
 
   // Subscription renewals / interrupted purchases are re-delivered by the
-  // native shell via this callback; verify each one against Apple's servers.
+  // native shell via this callback; verify each one against Apple's servers,
+  // then FINISH it — otherwise the transaction stays unfinished and StoreKit
+  // re-delivers it on every launch (and repeat buys of the same consumable can
+  // behave oddly while one is stuck open). The grant is idempotent server-side,
+  // so verify-then-finish here can never double-grant.
   useEffect(() => {
     if (window.NativeIAP?.available) {
-      window.onNativeIAPPending = (jws) => base44.functions.invoke('apple-iap-verify', { jws });
+      window.onNativeIAPPending = async (jws) => {
+        try {
+          const res = await base44.functions.invoke('apple-iap-verify', { jws });
+          const tid = res?.data?.transactionId;
+          if (tid) await window.NativeIAP.finish(tid);
+        } catch { /* leave unfinished; retried next launch */ }
+      };
     }
   }, []);
 
