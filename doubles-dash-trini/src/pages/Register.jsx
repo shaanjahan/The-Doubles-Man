@@ -83,7 +83,12 @@ export default function Register() {
 
   const handleApple = () => {
     resetActivityStamp();
-    base44.auth.loginWithProvider("apple", "/home");
+    // Native SIWA path can reject (e.g. dismissed Face ID sheet = 'cancelled',
+    // which stays silent); surface anything else.
+    Promise.resolve(base44.auth.loginWithProvider("apple", "/home")).catch((e) => {
+      const msg = e?.message || "";
+      if (!/cancel/i.test(msg)) setError(msg || "Apple sign-in failed");
+    });
   };
 
   if (showOtp) {

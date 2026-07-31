@@ -50,6 +50,25 @@ const auth = {
     return data;
   },
   loginWithProvider(provider, redirectPath) {
+    // Native Sign in with Apple (iOS wrapper): the one-tap Face ID sheet via
+    // the SIWA bridge, then exchange Apple's identity token directly for a
+    // Supabase session — no web OAuth redirect chain (which forced the full
+    // appleid.apple.com password + 2FA login inside the WKWebView and was
+    // prone to mid-chain races that took multiple attempts).
+    if (provider === 'apple' && window.NativeSIWA?.available) {
+      return (async () => {
+        const { identityToken, nonce } = await window.NativeSIWA.signIn();
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: identityToken,
+          nonce,
+        });
+        if (error) throw error;
+        // Session is established synchronously — go straight into the game.
+        if (typeof window !== 'undefined') window.location.href = redirectPath || '/home';
+        return data;
+      })();
+    }
     return supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: origin() + (redirectPath || '/home') },
