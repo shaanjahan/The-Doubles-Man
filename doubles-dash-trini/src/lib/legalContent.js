@@ -86,7 +86,7 @@ Questions about these Terms go to **thedoublesmanapp@gmail.com**.
 export const PRIVACY_CONTENT = `# Privacy Policy — The Doubles Man
 
 **Effective date:** July 24, 2026
-**Last updated:** July 24, 2026
+**Last updated:** July 30, 2026
 
 This Privacy Policy explains how The Doubles Man ("the App," "we," "us") collects, uses, and protects your information. The App is operated by Lamae Maharaj. You can reach us at **thedoublesmanapp@gmail.com**.
 
@@ -94,7 +94,7 @@ By creating an account or using the App, you agree to this policy.
 
 ## Information we collect
 
-**Account information.** When you sign in, we receive your email address and display name from the sign-in provider you choose (Google, Apple, Microsoft, Facebook, or email and password). If you sign in with Apple and choose to hide your email, we receive only Apple's private relay address and never your real one. We do not receive or store your password when you use a social sign-in provider.
+**Account information.** When you sign in, we receive your email address and display name from the sign-in method you choose (Google, Apple, or email — using a password or a one-time login code sent to your email). If you sign in with Apple and choose to hide your email, we receive only Apple's private relay address and never your real one. We do not receive or store your password when you use a social sign-in provider.
 
 **Game data.** We store your progress in the game: your score, level, in-game currency balances (coins, gems, and sauce), items you own, VIP status, and related gameplay state. This is tied to your account so your progress follows you across devices.
 
@@ -114,7 +114,7 @@ We do **not** sell your personal information. We do **not** share it with advert
 
 We share information only with the service providers needed to run the App:
 
-Base44 provides our application hosting and database, and stores your account and game data on our behalf. Apple processes purchases made in the iOS app and provides sign-in if you choose Apple. Google provides sign-in if you choose Google, and processes purchases made through the Android app. Microsoft and Meta (Facebook) provide sign-in if you choose those options. Our web payment processor handles purchases made on the website rather than in an app store.
+Supabase provides our database, authentication, and secure storage, and stores your account and game data on our behalf. Netlify hosts and delivers the web app. Resend sends account and login emails, such as your verification code. Apple processes purchases made in the iOS app and provides sign-in if you choose Apple. Google provides sign-in if you choose Google, and processes purchases made through the Android app. Our web payment processor handles purchases made on the website rather than in an app store.
 
 Each of these providers handles your data under its own privacy policy. We may also disclose information if required by law, legal process, or a valid government request, or where necessary to protect our rights, safety, or the safety of others.
 
