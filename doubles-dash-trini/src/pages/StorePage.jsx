@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePlayerState } from '@/lib/game/PlayerContext';
-import { STORE_PRODUCTS } from '@/lib/game/catalog';
+import { STORE_PRODUCTS, SAUCE_PACK_ODDS } from '@/lib/game/catalog';
 import { Image } from '@/components/ui/image';
 import CoinIcon from '@/components/CoinIcon';
 import SauceShopSection from '@/components/game/SauceShopSection';
@@ -106,6 +106,12 @@ function ProductCard({ p, onBuy, applePrice }) {
           {p.kind === 'sauce_pack' && `${p.amount} random sauces`}
           {p.kind === 'bundle' && `Dollars + Gems + Sauce`}
         </div>
+        {/* Apple 3.1.1: randomized-item purchases must disclose odds pre-purchase. */}
+        {p.kind === 'sauce_pack' && (
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            Odds per sauce: {SAUCE_PACK_ODDS.map((o) => `${o.rarity} ${o.pct}%`).join(' · ')}
+          </div>
+        )}
         {err && <div className="text-[10px] text-rose-500 font-bold mt-0.5">{err}</div>}
       </div>
       <button

@@ -180,6 +180,19 @@ export const DAILY_REWARDS = [
   { day: 7, gems: 20, magicSauce: 'golden_tamarind' },
 ];
 
+// Mystery Sauce Pack drop odds, per sauce (each of the 3 rolls independently).
+// MUST mirror the server's rarity buckets in
+// supabase/functions/_shared/catalog.ts randomSauceId():
+//   r < 0.05 Legendary | r < 0.20 Epic | r < 0.45 Rare | else Common.
+// Displayed wherever the pack is sold — Apple guideline 3.1.1 requires odds
+// disclosure for paid randomized items before purchase.
+export const SAUCE_PACK_ODDS = [
+  { rarity: 'Common',    pct: 55 },
+  { rarity: 'Rare',      pct: 25 },
+  { rarity: 'Epic',      pct: 15 },
+  { rarity: 'Legendary', pct: 5 },
+];
+
 export const STORE_PRODUCTS = [
   { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 1000 },
   { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 6000, bonus: 500 },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Gem } from 'lucide-react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
-import { MAGIC_SAUCES, RARITY_STYLE } from '@/lib/game/catalog';
+import { MAGIC_SAUCES, RARITY_STYLE, SAUCE_PACK_ODDS } from '@/lib/game/catalog';
 import SauceIcon from '@/components/SauceIcon';
 
 // In-game Magic Sauces section for the real-money Store: equip owned sauces
@@ -61,6 +61,11 @@ export default function SauceShopSection() {
           <div>
             <div className="text-[11px] uppercase font-extrabold text-rose-500">Mystery Sauce Pack</div>
             <div className="text-sm font-extrabold text-slate-700">Open 3 random sauces</div>
+            {/* Apple 3.1.1: odds disclosed wherever the randomized pack is sold,
+                including for premium (gem) currency. Matches the server roll. */}
+            <div className="text-[10px] text-slate-400 mt-0.5">
+              Odds per sauce: {SAUCE_PACK_ODDS.map((o) => `${o.rarity} ${o.pct}%`).join(' · ')}
+            </div>
           </div>
           <button
             onClick={handleOpenPack}
