@@ -20,7 +20,10 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
-import { decodeTransaction } from 'npm:app-store-server-api@1.0.0';
+// Deno-native JWS verification (pinned Apple root + chain + OID + signature).
+// Replaced npm:app-store-server-api, whose Node-crypto chain validation threw
+// on genuine receipts under the Edge runtime — see _shared/appleJws.ts.
+import { decodeTransaction } from '../_shared/appleJws.ts';
 import { getProduct, computeGrant } from '../_shared/purchaseProducts.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
