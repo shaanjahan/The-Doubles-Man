@@ -61,8 +61,11 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      {/* Public site pages — no sign-in required */}
-      <Route path="/" element={<Landing />} />
+      {/* Public site pages — no sign-in required. Inside the iOS wrapper the
+          marketing landing is skipped: the reviewer/player lands in the game
+          (or login) immediately — a website-style first screen is the classic
+          App Review 4.2 "web wrapper" trigger. Web visitors still get Landing. */}
+      <Route path="/" element={window.NativeIAP?.available ? <Navigate to="/home" replace /> : <Landing />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/support" element={<SupportPage />} />
