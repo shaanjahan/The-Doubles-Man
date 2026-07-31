@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, supabase } from '@/api/base44Client';
 
 // Keep users signed in only while they're "recently active": if the app is
 // reopened (or the tab refocuses) more than GRACE_MS after the last recorded
@@ -109,6 +109,35 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+  }, []);
+
+  // React to Supabase auth changes. This is the fix for Apple/Google sign-in
+  // making users authenticate 2–3 times: after the OAuth redirect to /home, the
+  // provider code is still being exchanged for a session, so the one-shot me()
+  // in checkUserAuth() resolves to null and ProtectedRoute bounces to /login.
+  // Nothing previously listened for the session that lands a moment later, so
+  // the app stayed on /login until the user tried again. onAuthStateChange fires
+  // SIGNED_IN the instant the exchange completes — promote to authenticated then
+  // (Login also redirects to /home once isAuthenticated flips). SIGNED_OUT keeps
+  // state in sync with token expiry / logout from anywhere.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsAuthenticated(false);
+        return;
+      }
+      if (session?.user) {
+        if (event === 'SIGNED_IN') stampActive();
+        setUser(session.user);
+        setIsAuthenticated(true);
+        setAuthError(null);
+        setNetworkError(false);
+        setIsLoadingAuth(false);
+        setAuthChecked(true);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   // When the user returns to an open tab, recheck the inactivity window: if

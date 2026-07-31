@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import AppleIcon from "@/components/AppleIcon";
 import { toast } from "@/components/ui/use-toast";
-import { resetActivityStamp } from "@/lib/AuthContext";
+import { resetActivityStamp, useAuth } from "@/lib/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -19,6 +19,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // If a session lands while we're on /login — e.g. the Apple/Google OAuth code
+  // finishes exchanging just after the redirect bounced us here — go straight to
+  // the game instead of making the user tap "Sign in with Apple" again.
+  useEffect(() => {
+    if (isAuthenticated) navigate("/home", { replace: true });
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
