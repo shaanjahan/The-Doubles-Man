@@ -130,7 +130,9 @@ serveWithCors(async (req) => {
 
     let spawnMult = levelSpawn;
     let tipMult = 1 + (u.tips || 0) * 0.2;
-    let coinMult = loc.baseReward * (1 + (u.coin_mult || 0) * 0.1) * biz.coinMult;
+    // Doubles Legacy (+2%/level, permanent) mirrors the client's buildConfig —
+    // without it here, the anti-cheat coin cap would clamp away the buff.
+    let coinMult = loc.baseReward * (1 + (u.coin_mult || 0) * 0.1) * (1 + (u.legacy || 0) * 0.02) * biz.coinMult;
     const xpMult = 1 + (u.xp_mult || 0) * 0.15;
     let gemChance = 0.05;
     let doubleServe = false;

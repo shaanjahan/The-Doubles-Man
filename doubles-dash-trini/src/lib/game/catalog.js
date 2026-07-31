@@ -130,6 +130,11 @@ export const UPGRADES = [
   { id: 'gem_luck',   name: 'Lucky Mango',       emoji: '🥭', description: '+3% gem drop chance per level', baseCost: 900,  growth: 2.0, maxLevel: 5, step: 0.03 },
   { id: 'combo_master', name: 'Fire Shoes',      emoji: '👟', description: '+2% combo bonus per level',       baseCost: 1100, growth: 2.1, maxLevel: 5, step: 0.02 },
   { id: 'auto_bless', name: "Gran's Blessing",  emoji: '🧿', description: '+1 auto-corrected serve per round', baseCost: 1300, growth: 2.3, maxLevel: 3, step: 1 },
+  // Endless-horizon coin sink: keeps coins meaningful after the tier/upgrade
+  // ladder is maxed (late-game money otherwise accumulates with nothing to
+  // buy). Costs 500k and roughly triples per level. Mirror in
+  // supabase/functions/_shared/catalog.ts.
+  { id: 'legacy',     name: 'Doubles Legacy',   emoji: '👑', description: '+2% dollars per level — forever', baseCost: 500000, growth: 2.8, maxLevel: 10, step: 0.02 },
 ];
 
 export function upgradeCost(upg, currentLevel) {
@@ -194,9 +199,13 @@ export const SAUCE_PACK_ODDS = [
 ];
 
 export const STORE_PRODUCTS = [
-  { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 1000 },
-  { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 6000, bonus: 500 },
-  { id: 'coin_large',   kind: 'coin_pack',  name: 'Rich Man Flex',     emoji: '🏦', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 9.99,  amount: 14000, bonus: 2000 },
+  // Coin pack sizing: priced as TIME SAVED against the tier-scaled hourly cap
+  // (see finalize_round_apply), not as early-game token amounts — $4.99 skips
+  // roughly a third of a day of late-game grind. Amounts must stay in sync with
+  // supabase/functions/_shared/purchaseProducts.ts (the server grant table).
+  { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 6000 },
+  { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 32000, bonus: 3000 },
+  { id: 'coin_large',   kind: 'coin_pack',  name: 'Rich Man Flex',     emoji: '🏦', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 9.99,  amount: 74000, bonus: 6000 },
   { id: 'gem_small',    kind: 'gem_pack',   name: 'Mother in Law Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 1.99,  amount: 25 },
   { id: 'gem_medium',   kind: 'gem_pack',   name: 'Side Man Gift',      emoji: '💎', image: '/game/622437699_generated_image.webp', price: 4.99,  amount: 75, bonus: 10 },
   { id: 'gem_large',    kind: 'gem_pack',   name: 'Rich Gyal Vibes',    emoji: '👑', image: '/game/622437699_generated_image.webp', price: 19.99, amount: 350, bonus: 80 },

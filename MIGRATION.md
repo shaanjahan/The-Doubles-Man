@@ -611,3 +611,36 @@ flips to a timestamp and their three boards show the historical scores (dev
 Shaanjahan already validated directly: round 633782 / 338 / 165). The migration
 was applied via the Management API `database/query` endpoint (not `db push`) +
 `notify pgrst, 'reload schema'`, consistent with the other migrations.
+
+## Economy tuning v1 (2026-07-31) — earn-by-playing, pay-to-accelerate
+
+Problem (from live data): gameplay coins were capped (3,500/hr) but the sink
+ladder was finite (~950k lifetime = "done" in ~a week), so late-game money
+piled up unspent (top tester: 433k float) and coin IAPs (16k for $9.99, less
+than one late round) had no reason to exist.
+
+Changes (ALL forward-looking catalog/code constants — **zero writes to player
+rows**, verified by byte-comparing a before/after snapshot of all 23 players;
+the only diff was one tester actively playing during the window):
+1. **Doubles Legacy** prestige upgrade (`legacy`): 500k × 2.8^level, 10 levels,
+   +2% permanent coin mult each, 👑 badge on the profile. In client catalog,
+   server catalog (buy-upgrade validates from it), client buildConfig, and
+   finalize-round's cap math.
+2. **Tier-scaled hourly cap** (migration 20260731020000): v_cap =
+   greatest(stored per-player cap, [3500,5000,6500,8000,12000,18000,25000] by
+   business_tier 0..6). greatest() = caps only ever rise — testers strictly
+   grandfathered. Function body taken from the DEPLOYED definition, one line
+   changed.
+3. **Coin packs repriced as time-saved**: small 1k→6k, medium 6.5k→35k,
+   large 16k→80k (client STORE_PACKS + server purchaseProducts in lockstep;
+   already-granted purchases keep their granted amounts). Store display text
+   updates automatically; ASC product names carry no amounts, so no
+   resubmission needed.
+4. **Bugfix**: client buildConfig indexed BUSINESS_TIERS[businessTier] without
+   clamping (values run 0..6, array has 5) — tiers 5-6 silently fell back to
+   the 1.0x multiplier. Clamped like the server; top-tier vendors now actually
+   earn their 3.0x.
+
+Deployed: finalize-round + buy-upgrade functions, cap migration via Management
+API, web via Netlify. Verified: player snapshot identical, deployed function
+tier_scaled+grandfathered=true, buy-upgrade recognizes `legacy`.

@@ -30,6 +30,9 @@ export const UPGRADES: Upgrade[] = [
   { id: 'gem_luck',     name: 'Lucky Mango',     baseCost: 900,  growth: 2.0, maxLevel: 5, step: 0.03 },
   { id: 'combo_master', name: 'Fire Shoes',      baseCost: 1100, growth: 2.1, maxLevel: 5, step: 0.02 },
   { id: 'auto_bless',   name: "Gran's Blessing", baseCost: 1300, growth: 2.3, maxLevel: 3, step: 1 },
+  // Endless-horizon coin sink (+2% dollars/level, permanent). Mirrors
+  // catalog.js; finalize-round factors it into the coin cap.
+  { id: 'legacy',       name: 'Doubles Legacy',  baseCost: 500000, growth: 2.8, maxLevel: 10, step: 0.02 },
 ];
 
 export function getUpgrade(id: string): Upgrade | undefined {

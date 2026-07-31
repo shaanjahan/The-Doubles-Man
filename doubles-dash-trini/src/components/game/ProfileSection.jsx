@@ -40,7 +40,12 @@ export default function ProfileSection() {
       <div className="bg-white rounded-3xl p-4 shadow border border-amber-100 flex items-center gap-3">
         <PlayerAvatar avatarEmoji={player.avatarEmoji} sizeClass="w-16 h-16" emojiClass="text-4xl" />
         <div className="flex-1 min-w-0">
-          <div className="font-extrabold text-lg text-slate-800 truncate">{player.displayName}</div>
+          <div className="font-extrabold text-lg text-slate-800 truncate">
+            {player.displayName}
+            {(player.upgrades?.legacy || 0) > 0 && (
+              <span className="ml-1.5 align-middle text-[11px] font-extrabold text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-1.5 py-0.5 whitespace-nowrap">👑 Legacy {player.upgrades.legacy}</span>
+            )}
+          </div>
           <div className="text-xs text-slate-500 font-bold">Level {player.level} · {tierByIndex(player.businessTier).name}</div>
           <div className="text-[10px] text-amber-700 font-bold mt-0.5">🔥 Daily streak: {player.dailyStreak || 0}</div>
         </div>

@@ -35,7 +35,9 @@ function buildConfig(player, loc) {
   const levelSpawn = Math.max(0.86, 1.1 - cappedLvl * 0.01);
   let patienceMult = (1 + (u.patience || 0) * 0.15) * levelPatience;
   let tipMult = 1 + (u.tips || 0) * 0.2;
-  let coinMult = loc.baseReward * (1 + (u.coin_mult || 0) * 0.1);
+  // Doubles Legacy: +2% dollars per prestige level, permanent. Mirrored in
+  // finalize-round's server cap math — keep the two in sync.
+  let coinMult = loc.baseReward * (1 + (u.coin_mult || 0) * 0.1) * (1 + (u.legacy || 0) * 0.02);
   const xpMult = 1 + (u.xp_mult || 0) * 0.15;
   // Combo bonus grows with combo power per serve — each Fire Shoes level adds
   // a little extra per step on top of the 5% base.
@@ -59,7 +61,11 @@ function buildConfig(player, loc) {
     if (s.effect === 'auto_ingredient') autoIngredient = 999;
     if (s.effect === 'double_serve') doubleServe = true;
   }
-  const business = BUSINESS_TIERS[player.businessTier] || BUSINESS_TIERS[0];
+  // business_tier can exceed the 5-entry array (values run 0..6); clamp like
+  // the server does, so top-tier vendors get the 3.0x multiplier instead of
+  // silently falling back to tier 0's 1.0x (they were earning a third of the
+  // intended rate).
+  const business = BUSINESS_TIERS[Math.min(player.businessTier || 0, BUSINESS_TIERS.length - 1)] || BUSINESS_TIERS[0];
   coinMult *= business.coinMult;
   return {
     locationId: loc.id,
