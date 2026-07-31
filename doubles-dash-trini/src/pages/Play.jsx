@@ -375,7 +375,9 @@ export default function Play() {
           <div className="h-full grid grid-cols-2 gap-2">
             {Array.from({ length: g.maxSlots }).map((_, i) => {
               const c = g.customers[i];
-              if (c) return <Customer key={c.id} customer={c} slotIndex={i} />;
+              // 3-4 slots (Wider Stall) render as a 2x2 grid — half the height
+              // per slot — so the order bubble switches to compact chips there.
+              if (c) return <Customer key={c.id} customer={c} slotIndex={i} compact={g.maxSlots > 2} />;
               return (
                 <div key={`slot-${i}`} className="flex items-center justify-center opacity-30 border-2 border-dashed border-white/15 rounded-2xl w-full h-full">
                   <span className="text-2xl">…</span>
