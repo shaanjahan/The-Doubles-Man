@@ -650,22 +650,3 @@ Apple-submitted amounts (1,000 and 6,000+500) — those two IAPs are in review
 with those values, so display+grant must match. Only coin_large (not
 submitted, allowlist-hidden) keeps the time-saved sizing. Retune the two
 submitted packs only alongside an Apple resubmission.
-
-## Economy tuning v2 (2026-08-01) — fleet-scaled idle cap
-
-The per-collection idle ceiling was keyed to highest tier only (IDLE_CAPS,
-2k..24k), so once fleet income filled the cap inside the 4h window — which ONE
-Monarch already did — every further business copy added zero idle value (2nd
-Monarch: 306k for +120/round ≈ never pays back). This killed the buy-more-
-businesses loop and is why late-game coins pooled unspent.
-
-Fix: `capContribution` per copy (Bike 500 / Stand 1k / Roti 2k / Factory 4.5k /
-Monarch 8k); `fleetIdleCap(businesses, tier) = max(old tier cap, Σ contribution
-× count)` in _shared/businesses.ts + catalog.js, used by manage-business
-collect, collectableCoins, and the MyBusiness UI. max() floor = no player's
-ceiling ever decreases (tester grandfathering); one-of-each fleets stay at 24k
-until they outgrow it. Fill time per type is constant (contribution/income:
-Bike ~4h .. Monarch ~1.5h); marginal Monarch pays back in ~1-2 weeks of casual
-collecting. Pure code change — no SQL migration (cap is passed into
-business_collect_apply as a parameter), no player rows touched. Verified with
-Deno unit checks (floor/parity/growth/collection clamp).

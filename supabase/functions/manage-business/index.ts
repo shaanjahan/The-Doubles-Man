@@ -14,7 +14,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
-import { getUnit, incomePerMin, fleetIdleCap, MAX_IDLE_MINUTES } from '../_shared/businesses.ts';
+import { getUnit, incomePerMin, idleCapForTier, MAX_IDLE_MINUTES } from '../_shared/businesses.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -60,9 +60,7 @@ serveWithCors(async (req) => {
       // Computed pre-lock; businesses/tier only ever increase, so a stale value
       // can only under-credit. Elapsed time is measured under lock in the RPC.
       const ipm = incomePerMin(businesses);
-      // Fleet-scaled cap: every owned copy raises the ceiling; old tier cap
-      // remains as a floor so no player's ceiling ever drops.
-      const cap = fleetIdleCap(businesses, player.business_tier || 0);
+      const cap = idleCapForTier(player.business_tier || 0);
       const { data: applied, error: rpcErr } = await admin.rpc('business_collect_apply', {
         p_user_id: user.id,
         p_income_per_min: ipm,
