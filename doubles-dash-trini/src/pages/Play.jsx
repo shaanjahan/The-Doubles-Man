@@ -451,7 +451,10 @@ export default function Play() {
           >
             {g.flash.kind === 'perfect' ? (
               <div className="relative">
-                <ServeParticles trigger={g.servedCount} />
+                {/* Endurance mode: past 200 serves the sparkle burst is skipped —
+                    marathon rounds accumulated enough render pressure that iOS
+                    killed the WebView at round end. Mirrors main. */}
+                {g.servedCount < 200 && <ServeParticles trigger={g.servedCount} />}
                 <div className="text-2xl font-extrabold text-tropic-gold drop-shadow animate-[coin-fly_0.7s_ease-out_forwards]">
                   +{g.flash.coins}{' '}<CoinIcon className="w-5 h-5 inline-block align-middle" />{g.flash.combo > 1 ? <span className="text-tropic-coral"> ×{g.flash.combo}</span> : null}
                 </div>
