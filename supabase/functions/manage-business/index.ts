@@ -14,7 +14,20 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
-import { getUnit, incomePerMin, fleetIdleCap, MAX_IDLE_MINUTES } from '../_shared/businesses.ts';
+import { getUnit, incomePerMin, fleetIdleCap, businessNetValue, MAX_IDLE_MINUTES } from '../_shared/businesses.ts';
+
+// Identity fields for the board RPCs, from the post-mutation player row.
+function boardIdentity(userId: string, p: Record<string, any>) {
+  return {
+    p_owner_id: userId,
+    p_display_name: p.display_name,
+    p_avatar_emoji: p.avatar_emoji,
+    p_location_id: p.current_location_id ?? 0,
+    p_business_tier: p.business_tier,
+    p_level: p.level,
+    p_vip: !!p.vip,
+  };
+}
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -73,9 +86,21 @@ serveWithCors(async (req) => {
       if (!applied || applied.error) {
         return Response.json({ error: applied?.error || 'collect failed' }, { status: 500 });
       }
+      // Idle income counts toward the cumulative-earnings boards (non-fatal).
+      const collected = Number(applied.collected) || 0;
+      if (collected > 0) {
+        try {
+          const { error: eErr } = await admin.rpc('earnings_board_add', {
+            ...boardIdentity(user.id, applied.player),
+            p_delta: collected,
+            p_lifetime: Math.floor(Number(applied.stats?.lifetime_coins) || 0),
+          });
+          if (eErr) console.error('earnings board (collect) error:', eErr);
+        } catch (e) { console.error('earnings board (collect) error:', e); }
+      }
       return Response.json({
         player: toClientPlayer(applied.player, applied.stats),
-        collected: Number(applied.collected) || 0,
+        collected,
       });
     }
 
@@ -100,6 +125,14 @@ serveWithCors(async (req) => {
       if (!applied || applied.error) {
         return Response.json({ error: applied?.error || 'buy failed' }, { status: 500 });
       }
+      // A purchase changes empire value — post the new snapshot (non-fatal).
+      try {
+        const { error: bErr } = await admin.rpc('bizvalue_board_set', {
+          ...boardIdentity(user.id, applied.player),
+          p_value: businessNetValue(Array.isArray(applied.player?.businesses) ? applied.player.businesses : []),
+        });
+        if (bErr) console.error('bizvalue board (buy) error:', bErr);
+      } catch (e) { console.error('bizvalue board (buy) error:', e); }
       return Response.json({
         player: toClientPlayer(applied.player, applied.stats),
         cost: Number(applied.cost) || 0,

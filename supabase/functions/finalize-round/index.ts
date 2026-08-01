@@ -25,7 +25,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
-import { perRoundBonus } from '../_shared/businesses.ts';
+import { perRoundBonus, businessNetValue } from '../_shared/businesses.ts';
 import { evaluateAchievements, buildDefaultMissions, evaluateMissions } from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -297,6 +297,35 @@ serveWithCors(async (req) => {
       } catch (chErr) {
         console.error('challenge claim error:', chErr);
       }
+    }
+
+    // Cumulative-earnings + empire-value boards (best-effort, non-fatal):
+    // earnings accumulate this round's granted coins per rolling period (the
+    // all-time row converges to lifetime_coins); empire value posts the current
+    // fleet's invested cost so active players appear on each period's board.
+    try {
+      const identity = {
+        p_owner_id: user.id,
+        p_display_name: newPlayer.display_name,
+        p_avatar_emoji: newPlayer.avatar_emoji,
+        p_location_id: locationId,
+        p_business_tier: newPlayer.business_tier,
+        p_level: newPlayer.level,
+        p_vip: !!newPlayer.vip,
+      };
+      const { error: eErr } = await admin.rpc('earnings_board_add', {
+        ...identity,
+        p_delta: coinsGranted,
+        p_lifetime: Math.floor(Number(newStats?.lifetime_coins) || 0),
+      });
+      if (eErr) console.error('earnings board error:', eErr);
+      const { error: bErr } = await admin.rpc('bizvalue_board_set', {
+        ...identity,
+        p_value: businessNetValue(Array.isArray(newPlayer.businesses) ? newPlayer.businesses : []),
+      });
+      if (bErr) console.error('bizvalue board error:', bErr);
+    } catch (boardErr) {
+      console.error('earnings/bizvalue board error:', boardErr);
     }
 
     let finalPlayer = newPlayer;

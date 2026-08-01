@@ -11,6 +11,11 @@ const CATEGORIES = [
   { id: 'round_score', label: 'Best Round', emoji: '🏆' },
   { id: 'customers_served', label: 'Customers', emoji: '🛎️' },
   { id: 'max_combo', label: 'Longest Combo', emoji: '🔥' },
+  // Cumulative dollars earned in the period (rounds + idle collections);
+  // all-time converges to lifetime earnings.
+  { id: 'total_earnings', label: 'Top Earner', emoji: '💵' },
+  // Snapshot of empire value (total invested in businesses), greatest-per-period.
+  { id: 'biz_value', label: 'Empire Value', emoji: '🏪' },
   // Today's Rush: the one-attempt seeded daily challenge — inherently a daily
   // board, so selecting it pins the period to 'daily' (chips row hides).
   { id: 'daily_challenge', label: "Today's Rush", emoji: '⚡' },
@@ -146,7 +151,7 @@ export default function Leaderboard() {
                   <div className="font-bold text-sm text-slate-800 truncate">{e.displayName}{mine ? ' (you)' : ''}</div>
                   <div className="text-[10px] text-slate-500">Lvl {e.level || 1}</div>
                 </div>
-                <div className="font-extrabold text-amber-700">{e.score}</div>
+                <div className="font-extrabold text-amber-700">{(e.score || 0).toLocaleString()}</div>
               </div>
             );
           })
@@ -163,7 +168,7 @@ export default function Leaderboard() {
             <ShareStories
               headline="Leaderboard Rank"
               big={`#${myIdx + 1}`}
-              bigLabel={`${myEntry?.score ?? 0} pts`}
+              bigLabel={`${(myEntry?.score ?? 0).toLocaleString()} pts`}
               subline={`${tier.emoji} ${tier.name} · ${player?.displayName || 'Me'}`}
               emoji={tier.emoji || c?.emoji || '🏆'}
               footer="Can you beat my empire?"

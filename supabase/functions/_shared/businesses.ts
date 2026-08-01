@@ -67,6 +67,20 @@ export function incomePerMin(businesses: any[] = []): number {
   return total;
 }
 
+// Empire value for the 'biz_value' leaderboard: total invested purchase cost
+// of the owned fleet (sum of the escalating price paid for each copy). Monotonic
+// while businesses can't be sold, deterministic from the businesses jsonb.
+export function businessNetValue(businesses: any[] = []): number {
+  let total = 0;
+  for (const b of businesses) {
+    const u = getUnit(b?.tier);
+    if (!u) continue;
+    const count = Math.max(0, Math.floor(b.count || 0));
+    for (let k = 0; k < count; k++) total += Math.floor(u.baseCost * Math.pow(u.costGrowth, k));
+  }
+  return total;
+}
+
 export function perRoundBonus(businesses: any[] = []): number {
   let total = 0;
   for (const b of businesses) {
