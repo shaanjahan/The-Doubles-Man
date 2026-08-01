@@ -657,3 +657,17 @@ exactly as it did at Apple submission until the next planned feature update.
 The complete work lives on branch `feature/fleet-idle-cap` (merge it back when
 the user says to ship the new-features update). Economy v1 (Legacy crowns,
 tier-scaled hourly cap, tier-mult bugfix) remains live.
+
+## Economy v3 (2026-08-01) — original-way scoring AND wallets (owner decision)
+
+Round scores now use full round earnings (coinsEarned, plausibility-clamped)
+instead of the post-cap payout — capped-era scores had made the migrated
+Base44 records unbeatable. Then, at the owner's direction, the hourly WALLET
+cap was removed entirely (migration 20260801150000): rounds pay complete
+earnings, original Base44 economics. Anti-cheat plausibility ceilings and
+earnings_log recording remain. The tier-scaled-cap experiment (v1) lasted
+2026-07-31 -> 08-01. Consequence accepted by owner: marathon players earn
+uncapped; coin IAPs are now convenience for casual players; Legacy crowns and
+the parked sinks are the remaining inflation control. A 30,000,000-coin
+make-good was credited to the dev account for the one capped marathon round
+(exact withheld amount was unrecoverable).
