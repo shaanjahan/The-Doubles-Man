@@ -22,8 +22,10 @@ export const PURCHASE_PRODUCTS: PurchaseProduct[] = [
   // Coin amounts are priced as time-saved against the tier-scaled hourly cap —
   // keep in sync with catalog.js STORE_PACKS. Already-granted purchases keep
   // the amounts they were granted with (grants are recorded, never recomputed).
-  { id: 'coin_small',  kind: 'coin_pack',  name: 'Pocket Coins',   price: 0.99,  amount: 6000 },
-  { id: 'coin_medium', kind: 'coin_pack',  name: 'Vendor Stash',   price: 4.99,  amount: 32000, bonus: 3000 },
+  // coin_small / coin_medium: ORIGINAL amounts as submitted to Apple review —
+  // grants must match the submitted display. Do not retune without resubmitting.
+  { id: 'coin_small',  kind: 'coin_pack',  name: 'Pocket Coins',   price: 0.99,  amount: 1000 },
+  { id: 'coin_medium', kind: 'coin_pack',  name: 'Vendor Stash',   price: 4.99,  amount: 6000, bonus: 500 },
   { id: 'coin_large',  kind: 'coin_pack',  name: 'Doubles Tycoon', price: 9.99,  amount: 74000, bonus: 6000 },
   { id: 'gem_small',   kind: 'gem_pack',   name: 'Lil Gem Pouch',  price: 1.99,  amount: 25 },
   { id: 'gem_medium',  kind: 'gem_pack',   name: 'Gem Jar',        price: 4.99,  amount: 75, bonus: 10 },

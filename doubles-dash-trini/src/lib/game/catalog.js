@@ -203,8 +203,11 @@ export const STORE_PRODUCTS = [
   // (see finalize_round_apply), not as early-game token amounts — $4.99 skips
   // roughly a third of a day of late-game grind. Amounts must stay in sync with
   // supabase/functions/_shared/purchaseProducts.ts (the server grant table).
-  { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 6000 },
-  { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 32000, bonus: 3000 },
+  // coin_small / coin_medium keep their ORIGINAL amounts — these two were
+  // submitted to Apple review with these values; displayed/granted amounts
+  // must match that submission. Do not retune without resubmitting.
+  { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 1000 },
+  { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 6000, bonus: 500 },
   { id: 'coin_large',   kind: 'coin_pack',  name: 'Rich Man Flex',     emoji: '🏦', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 9.99,  amount: 74000, bonus: 6000 },
   { id: 'gem_small',    kind: 'gem_pack',   name: 'Mother in Law Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 1.99,  amount: 25 },
   { id: 'gem_medium',   kind: 'gem_pack',   name: 'Side Man Gift',      emoji: '💎', image: '/game/622437699_generated_image.webp', price: 4.99,  amount: 75, bonus: 10 },
