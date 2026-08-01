@@ -1,6 +1,8 @@
 // Looping theme music for The Doubles Man — a single <audio> element shared
 // app-wide via context. Browsers block autoplay, so music starts on the first
-// user gesture and remembers the mute choice for that session.
+// user gesture. The mute choice persists across launches (localStorage) — the
+// header note button is a real "music off" setting, and it never touches sound
+// effects (sfx live in useSound, a separate system).
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 const THEME_TRACK =
@@ -10,7 +12,9 @@ const MusicContext = createContext(null);
 
 export function MusicProvider({ children }) {
   const audioRef = useRef(null);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(() => {
+    try { return localStorage.getItem('doubles_musicMuted') === '1'; } catch { return false; }
+  });
 
   // Create the audio element once.
   useEffect(() => {
@@ -53,6 +57,7 @@ export function MusicProvider({ children }) {
   function toggleMute() {
     setMuted((m) => {
       const next = !m;
+      try { localStorage.setItem('doubles_musicMuted', next ? '1' : '0'); } catch {}
       const a = audioRef.current;
       if (a && !next && a.paused) a.play().catch(() => {});
       return next;
