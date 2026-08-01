@@ -84,7 +84,7 @@ export default function Leaderboard() {
                   <div className="font-bold text-sm text-slate-800 truncate">{e.displayName}{mine ? ' (you)' : ''}</div>
                   <div className="text-[10px] text-slate-500">Lvl {e.level || 1}</div>
                 </div>
-                <div className="font-extrabold text-amber-700">{e.score}</div>
+                <div className="font-extrabold text-amber-700">{(e.score || 0).toLocaleString()}</div>
               </div>
             );
           })
@@ -101,7 +101,7 @@ export default function Leaderboard() {
             <ShareStories
               headline="Leaderboard Rank"
               big={`#${myIdx + 1}`}
-              bigLabel={`${myEntry?.score ?? 0} pts`}
+              bigLabel={`${(myEntry?.score ?? 0).toLocaleString()} pts`}
               subline={`${tier.emoji} ${tier.name} · ${player?.displayName || 'Me'}`}
               emoji={tier.emoji || c?.emoji || '🏆'}
               footer="Can you beat my empire?"
