@@ -34,16 +34,6 @@ export default function MyBusiness() {
   const perMin = businessIncomePerMin(businesses);
   const perRound = businessPerRoundBonus(businesses);
   const maxStorable = Math.min(perMin * MAX_IDLE_MINUTES, idleCap);
-  // Meter state: how full the idle bucket is and how long until it tops out.
-  // collectable = min(perMin × elapsed, cap), so remaining time is simply the
-  // shortfall at the fill rate (valid for both the cap- and window-bound case).
-  const isFull = perMin > 0 && collectable >= maxStorable;
-  const remainingMin = perMin > 0 && !isFull ? (maxStorable - collectable) / perMin : 0;
-  const fmtEta = (min) => {
-    const m = Math.max(1, Math.ceil(min));
-    const h = Math.floor(m / 60);
-    return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
-  };
 
   async function collect() {
     if (busy || collectable <= 0) return;
@@ -69,7 +59,7 @@ export default function MyBusiness() {
         <h1 className="text-3xl font-extrabold text-tropic-coral tracking-wide">My Business</h1>
       </div>
       <p className="text-xs text-white/60">
-        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — every business you buy raises your per-collection MAX, income accrues up to 4h while you're away, and each adds a bonus every round you play.
+        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — your per-collection cap rises with your rank (2,000 → 3,500 → 6,500 → 12,000 → 24,000), accrues up to 4h away, and each adds a bonus every round you play.
       </p>
 
       {/* Collect bar */}
@@ -93,19 +83,8 @@ export default function MyBusiness() {
           </button>
         </div>
         {perMin > 0 && (
-          <div className="mt-3">
-            <div className={`h-2.5 rounded-full bg-black/20 overflow-hidden ${isFull ? 'ring-1 ring-tropic-gold' : ''}`}>
-              <div
-                className={`h-full rounded-full transition-all ${isFull ? 'bg-tropic-gold animate-pulse' : 'bg-white/90'}`}
-                style={{ width: `${Math.min(100, maxStorable > 0 ? (collectable / maxStorable) * 100 : 0)}%` }}
-              />
-            </div>
-            <div className="mt-1 flex items-center justify-between text-[11px] font-extrabold">
-              <span className="opacity-80">MAX {maxStorable.toLocaleString()} <CoinIcon className="w-3 h-3 inline -mt-0.5" /></span>
-              <span className={isFull ? 'text-tropic-gold' : 'opacity-80'}>
-                {isFull ? '⚡ FULL — collect now!' : `⏱ Full in ${fmtEta(remainingMin)}`}
-              </span>
-            </div>
+          <div className="mt-3 h-2 rounded-full bg-black/20 overflow-hidden">
+            <div className="h-full bg-white/90 rounded-full transition-all" style={{ width: `${Math.min(100, maxStorable > 0 ? (collectable / maxStorable) * 100 : 0)}%` }} />
           </div>
         )}
       </section>
@@ -170,7 +149,7 @@ export default function MyBusiness() {
       </section>
 
       <div className="text-[11px] text-white/50 text-center pt-1">
-        Costs rise as you buy more — and every business raises your collection MAX (currently {idleCap.toLocaleString()} dollars). Idle income accrues up to 4h.
+        Costs rise as you buy more. Idle income accrues up to 4h and is capped at {idleCap.toLocaleString()} dollars per collection.
       </div>
     </div>
   );
