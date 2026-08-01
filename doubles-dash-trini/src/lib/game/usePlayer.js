@@ -157,6 +157,8 @@ export function usePlayer() {
       gemsEarned: pending.gemsEarned || 0,
       xpEarned: pending.xpEarned || 0,
       elapsedMs: pending.elapsedMs || 60000,
+      // A crashed Today's Rush still consumed the attempt — salvage it too.
+      challenge: !!pending.challenge,
     }).then((res) => {
       const p = res?.data?.player;
       if (p) { playerRef.current = ensureDefaults(p); setPlayer(playerRef.current); }
@@ -220,6 +222,7 @@ export function usePlayer() {
         sauceUsed: !!outcome.sauceUsed,
         elapsedMs: outcome.elapsedMs || 60000,
         sessionId: outcome.sessionId || '',
+        challenge: !!outcome.challenge,
       });
       const data = res?.data;
       if (data?.player) {

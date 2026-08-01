@@ -11,6 +11,9 @@ const CATEGORIES = [
   { id: 'round_score', label: 'Best Round', emoji: '🏆' },
   { id: 'customers_served', label: 'Customers', emoji: '🛎️' },
   { id: 'max_combo', label: 'Longest Combo', emoji: '🔥' },
+  // Today's Rush: the one-attempt seeded daily challenge — inherently a daily
+  // board, so selecting it pins the period to 'daily' (chips row hides).
+  { id: 'daily_challenge', label: "Today's Rush", emoji: '⚡' },
 ];
 
 const PERIODS = [
@@ -58,11 +61,14 @@ export default function Leaderboard() {
   // Fetch the selected board on the server (filter + sort by score desc) so
   // combo entries (small scores) aren't crowded out of a global top-N window by
   // the much larger round_score / customers_served values.
+  // Today's Rush is inherently a daily board — pin its period regardless of tab.
+  const effectivePeriod = cat === 'daily_challenge' ? 'daily' : period;
+
   const reload = useCallback(async () => {
     setLoading(true);
     try {
       const rows = await base44.entities.LeaderboardEntry.filter(
-        { category: cat, period, periodKey: periodKeyFor(period) },
+        { category: cat, period: effectivePeriod, periodKey: periodKeyFor(effectivePeriod) },
         '-score',
         200,
       );
@@ -72,7 +78,7 @@ export default function Leaderboard() {
     } finally {
       setLoading(false);
     }
-  }, [cat, period]);
+  }, [cat, effectivePeriod]);
 
   useEffect(() => { reload(); }, [reload]);
   useRefreshHandler('/leaderboard', reload);
@@ -92,17 +98,19 @@ export default function Leaderboard() {
     <div className="max-w-2xl mx-auto px-3 pt-3 pb-6 space-y-3">
       <h1 className="text-3xl font-extrabold text-tropic-coral tracking-wide">Leaderboards</h1>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-        {PERIODS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPeriod(p.id)}
-            className={`px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0 transition ${p.id === period ? 'bg-tropic-sea text-white' : 'bg-white/10 text-white/70 border border-white/15'}`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {cat !== 'daily_challenge' && (
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {PERIODS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0 transition ${p.id === period ? 'bg-tropic-sea text-white' : 'bg-white/10 text-white/70 border border-white/15'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map((c) => (
@@ -122,7 +130,9 @@ export default function Leaderboard() {
         ) : filtered.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500">
             <Trophy className="mx-auto text-amber-400 mb-1" size={28} />
-            {EMPTY_COPY[period] || EMPTY_COPY.alltime}
+            {cat === 'daily_challenge'
+              ? "Nobody has taken on Today's Rush yet — be the first!"
+              : (EMPTY_COPY[effectivePeriod] || EMPTY_COPY.alltime)}
           </div>
         ) : (
           filtered.map((e, i) => {

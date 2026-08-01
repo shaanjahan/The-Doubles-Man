@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   LOCATIONS, MAGIC_SAUCES, BUSINESS_TIERS,
 } from '@/lib/game/catalog';
-import { spawnCustomer, classifyServe } from '@/lib/game/engine';
+import { spawnCustomer, classifyServe, challengeRng } from '@/lib/game/engine';
 import { sfx, unlockAudio } from '@/lib/game/useSound';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { Flame, Play as PlayIcon, Gem, Heart, X } from 'lucide-react';
@@ -76,12 +76,21 @@ function buildConfig(player, loc) {
   };
 }
 
+// UTC day key/seed for Today's Rush — must match the server's UTC date gate.
+const todayUTC = () => new Date().toISOString().slice(0, 10);
+const todaySeed = () => Number(todayUTC().replace(/-/g, ''));
+
 function startState(cfg) {
   return {
     elapsed: 0,
     spawnClock: 1500,
     spawnEveryMs: cfg.spawnEveryMs,
     maxSlots: cfg.slots,
+    // Daily Challenge: same customer sequence for everyone — customer #i is a
+    // pure function of (day, i) via challengeRng, so device/timing can't skew it.
+    challenge: !!cfg.challenge,
+    challengeSeed: cfg.challenge ? todaySeed() : 0,
+    spawnIndex: 0,
     customers: [],
     prepBoard: [],
     combo: 0, maxCombo: 0,
@@ -126,7 +135,11 @@ function tickGame(g) {
   if (ng.mistakes < MAX_MISTAKES) {
     ng.spawnClock -= TICK_MS;
     if (ng.spawnClock <= 0 && ng.customers.length < ng.maxSlots) {
-      ng.customers.push(spawnCustomer(ng.patienceMult));
+      ng.customers.push(spawnCustomer(
+        ng.patienceMult,
+        ng.challenge ? challengeRng(ng.challengeSeed, ng.spawnIndex) : Math.random,
+      ));
+      ng.spawnIndex += 1;
       ng.spawnClock += ng.spawnEveryMs;
     }
   }
@@ -146,6 +159,7 @@ function computeOutcome(g) {
     elapsedMs: g.elapsed || 0,
     sauceUsed: !!g.sauceUsed,
     sessionId: g.sessionId || '',
+    challenge: !!g.challenge,
     score: Math.round(g.coinsEarned + g.perfectCount * 50 + g.maxCombo * 25),
   };
 }
@@ -211,6 +225,7 @@ export default function Play() {
         gemsEarned: Math.round(game.gemsEarned),
         xpEarned: Math.round(game.xpEarned),
         elapsedMs: game.elapsed || 0,
+        challenge: !!game.challenge,
       }));
     } catch {}
   }, [phase, game]);
@@ -223,6 +238,23 @@ export default function Play() {
     if (loc.unlockTier > player.businessTier) return;
     savedRef.current = false;
     setGame(startState(buildConfig(player, loc)));
+    setOutcome(null);
+    setPhase('play');
+  }
+
+  // Today's Rush: one attempt per UTC day, always at the first location so the
+  // shared customer sequence plays out on a level field (your upgrades still
+  // count — "same rush, your build"). The server is the real gate; this local
+  // check just prevents a wasted round.
+  const challengePlayed = (player?.lastChallengeDay || '') === todayUTC();
+  function handleStartChallenge() {
+    if (!player || challengePlayed) return;
+    unlockAudio();
+    sfx.click();
+    savedRef.current = false;
+    const cfg = buildConfig(player, LOCATIONS[0]);
+    cfg.challenge = true;
+    setGame(startState(cfg));
     setOutcome(null);
     setPhase('play');
   }
@@ -339,6 +371,25 @@ export default function Play() {
         >
           <PlayIcon size={20} /> Begin Service
         </button>
+
+        {/* Today's Rush — the daily challenge. Same customers for every player. */}
+        <div className="bg-fire-tile rounded-3xl p-4 shadow border border-tropic-gold/40">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] font-extrabold text-tropic-gold uppercase">⚡ Today's Rush</div>
+              <div className="text-xs text-white/70 mt-0.5">
+                Same customers for everyone, one try a day. Top the daily board!
+              </div>
+            </div>
+            <button
+              onClick={handleStartChallenge}
+              disabled={challengePlayed}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-extrabold shrink-0 transition ${challengePlayed ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-tropic-gold text-black hover:scale-105 active:scale-95'}`}
+            >
+              {challengePlayed ? 'Done today ✓' : 'Take it on'}
+            </button>
+          </div>
+        </div>
 
         <div className="bg-fire-tile rounded-3xl p-4 shadow border-white/10">
           <SauceActivator />

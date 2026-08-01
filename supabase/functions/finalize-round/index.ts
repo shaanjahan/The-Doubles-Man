@@ -264,6 +264,41 @@ serveWithCors(async (req) => {
       console.error('leaderboard upsert error:', lbErr);
     }
 
+    // Daily Challenge (Today's Rush): the client flags the round; the SERVER is
+    // the gate. Atomically claim today's attempt (conditional update — only
+    // fires if last_challenge_day is null or before today, UTC), and only a
+    // successful claim posts to the challenge board. A replayed/forged second
+    // attempt still gets normal round rewards but can't touch the board.
+    // Best-effort like the leaderboard write — never fatal to the round.
+    if (body?.challenge === true) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: claimed, error: claimErr } = await admin
+          .from('players')
+          .update({ last_challenge_day: today })
+          .eq('user_id', user.id)
+          .or(`last_challenge_day.is.null,last_challenge_day.lt.${today}`)
+          .select('user_id');
+        if (claimErr) throw claimErr;
+        if (claimed && claimed.length > 0) {
+          newPlayer.last_challenge_day = today; // response reflects the claim
+          const { error: chErr } = await admin.rpc('challenge_upsert_best', {
+            p_owner_id: user.id,
+            p_display_name: newPlayer.display_name,
+            p_avatar_emoji: newPlayer.avatar_emoji,
+            p_location_id: locationId,
+            p_business_tier: newPlayer.business_tier,
+            p_level: newPlayer.level,
+            p_vip: !!newPlayer.vip,
+            p_score: score,
+          });
+          if (chErr) console.error('challenge upsert error:', chErr);
+        }
+      } catch (chErr) {
+        console.error('challenge claim error:', chErr);
+      }
+    }
+
     let finalPlayer = newPlayer;
     let finalStats = newStats;
 
