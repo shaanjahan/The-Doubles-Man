@@ -650,3 +650,10 @@ Apple-submitted amounts (1,000 and 6,000+500) — those two IAPs are in review
 with those values, so display+grant must match. Only coin_large (not
 submitted, allowlist-hidden) keeps the time-saved sizing. Retune the two
 submitted packs only alongside an Apple resubmission.
+
+**Economy v2 parked (2026-08-01):** the fleet-scaled idle cap + collection
+meter were reverted on main at the user's direction — My Business must look
+exactly as it did at Apple submission until the next planned feature update.
+The complete work lives on branch `feature/fleet-idle-cap` (merge it back when
+the user says to ship the new-features update). Economy v1 (Legacy crowns,
+tier-scaled hourly cap, tier-mult bugfix) remains live.
