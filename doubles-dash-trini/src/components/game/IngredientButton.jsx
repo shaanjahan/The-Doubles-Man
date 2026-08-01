@@ -17,7 +17,14 @@ export default function IngredientButton({ ingredientId, onClick, disabled }) {
       className={`flex flex-col items-center justify-center gap-1 w-[4.75rem] min-h-[5.5rem] rounded-2xl p-2 transition duration-75 shadow-sm active:scale-90 disabled:opacity-50 no-tap-highlight touch-manipulation select-none ${ing.palette.bg} ${ing.palette.ring} ring-1`}
     >
       {ing.image ? (
-        <Image src={ing.image} alt={ing.label} fittingType="fit" className="w-12 h-12 shrink-0" />
+        // Framed tile, not bare art: several source images (tamarind, cucumber,
+        // shadow beni) are cropped edge-to-edge IN THE FILE — rendered bare
+        // they read as "cut off" no matter the button size. Inside a rounded
+        // frame (same treatment as the order-bubble chips) the identical art
+        // reads as an intentional product tile.
+        <span className="w-12 h-12 rounded-xl overflow-hidden shrink-0 block">
+          <Image src={ing.image} alt={ing.label} fittingType="fill" className="w-full h-full block" />
+        </span>
       ) : (
         <span className="text-3xl leading-none">{ing.emoji}</span>
       )}
