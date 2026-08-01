@@ -94,6 +94,19 @@ const idToEmail: Record<string, string> = {};
 for (const u of joinRows) if (u[idCol]) idToEmail[u[idCol]] = (u[emailCol] ?? '').trim().toLowerCase();
 console.log(`Email join: ${joinRows.length} rows, '${idCol}' -> '${emailCol}'`);
 
+// Apple testers return with a NEW private-relay email (relay addresses are
+// minted per developer account, so Base44-era relays never match) — the only
+// bridge is the tester identifying themselves. RESTORE_OVERRIDES maps their
+// old created_by_id to the email of the NEW account they made:
+//   RESTORE_OVERRIDES="<created_by_id>=<new-account-email>[,...]"
+for (const pair of (Deno.env.get('RESTORE_OVERRIDES') ?? '').split(',')) {
+  const [cbid, email] = pair.split('=').map((s) => s.trim());
+  if (cbid && email) {
+    idToEmail[cbid] = email.toLowerCase();
+    console.log(`Override: ${cbid} -> <redacted>@${email.split('@')[1] ?? '?'}`);
+  }
+}
+
 // --- 3. email -> Supabase uid (paginate admin.listUsers) ---
 const emailToId: Record<string, string> = {};
 for (let page = 1; ; page++) {
