@@ -169,6 +169,11 @@ const entities = {
     async filter(where = {}, order, limit) {
       let q = supabase.from('leaderboard_entries').select('*');
       if (where.category) q = q.eq('category', where.category);
+      // Period boards: period 'alltime'|'daily'|'weekly'|'monthly' plus its
+      // key ('' / '2026-08-01' / '2026-W31' / '2026-08'). A new key IS the
+      // reset — no cron ever wipes rows.
+      if (where.period) q = q.eq('period', where.period);
+      if (where.periodKey !== undefined) q = q.eq('period_key', where.periodKey);
       if (order) {
         const desc = String(order).startsWith('-');
         q = q.order(desc ? String(order).slice(1) : order, { ascending: !desc });

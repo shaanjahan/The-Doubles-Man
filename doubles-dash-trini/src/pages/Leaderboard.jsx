@@ -13,26 +13,66 @@ const CATEGORIES = [
   { id: 'max_combo', label: 'Longest Combo', emoji: '🔥' },
 ];
 
+const PERIODS = [
+  { id: 'daily',   label: 'Daily' },
+  { id: 'weekly',  label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'alltime', label: 'All Time' },
+];
+
+// Current board key for a period, in UTC — MUST mirror the server's
+// leaderboard_upsert_best ('YYYY-MM-DD' / ISO 'IYYY-"W"IW' / 'YYYY-MM').
+// A new key is what "resets" a board; nothing is ever wiped.
+function periodKeyFor(period, d = new Date()) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  if (period === 'daily') return `${y}-${m}-${day}`;
+  if (period === 'monthly') return `${y}-${m}`;
+  if (period === 'weekly') {
+    // ISO-8601 week + week-numbering year (Postgres IYYY-"W"IW).
+    const t = new Date(Date.UTC(y, d.getUTCMonth(), d.getUTCDate()));
+    t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7) + 3); // nearest Thursday
+    const isoYear = t.getUTCFullYear();
+    const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+    const week = 1 + Math.round(((t - jan4) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
+    return `${isoYear}-W${String(week).padStart(2, '0')}`;
+  }
+  return ''; // alltime
+}
+
+const EMPTY_COPY = {
+  daily: 'No entries yet today — be the first vendor on the board!',
+  weekly: 'No entries yet this week — be the first vendor on the board!',
+  monthly: 'No entries yet this month — be the first vendor on the board!',
+  alltime: 'No entries yet — be the first vendor to make the board!',
+};
+
 export default function Leaderboard() {
   const { player } = usePlayerState();
   const [entries, setEntries] = useState([]);
   const [cat, setCat] = useState('round_score');
+  const [period, setPeriod] = useState('alltime');
   const [loading, setLoading] = useState(true);
 
-  // Fetch the selected category on the server (filter + sort by score desc) so
+  // Fetch the selected board on the server (filter + sort by score desc) so
   // combo entries (small scores) aren't crowded out of a global top-N window by
   // the much larger round_score / customers_served values.
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await base44.entities.LeaderboardEntry.filter({ category: cat }, '-score', 200);
+      const rows = await base44.entities.LeaderboardEntry.filter(
+        { category: cat, period, periodKey: periodKeyFor(period) },
+        '-score',
+        200,
+      );
       setEntries(rows || []);
     } catch {
       setEntries([]);
     } finally {
       setLoading(false);
     }
-  }, [cat]);
+  }, [cat, period]);
 
   useEffect(() => { reload(); }, [reload]);
   useRefreshHandler('/leaderboard', reload);
@@ -52,6 +92,18 @@ export default function Leaderboard() {
     <div className="max-w-2xl mx-auto px-3 pt-3 pb-6 space-y-3">
       <h1 className="text-3xl font-extrabold text-tropic-coral tracking-wide">Leaderboards</h1>
 
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+        {PERIODS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            className={`px-3 py-1 rounded-full text-[11px] font-extrabold shrink-0 transition ${p.id === period ? 'bg-tropic-sea text-white' : 'bg-white/10 text-white/70 border border-white/15'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map((c) => (
           <button
@@ -70,7 +122,7 @@ export default function Leaderboard() {
         ) : filtered.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500">
             <Trophy className="mx-auto text-amber-400 mb-1" size={28} />
-            No entries yet — be the first vendor to make the board!
+            {EMPTY_COPY[period] || EMPTY_COPY.alltime}
           </div>
         ) : (
           filtered.map((e, i) => {

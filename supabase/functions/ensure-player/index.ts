@@ -79,6 +79,9 @@ async function applyLeaderboardSeed(
     p_round_score: seed.round_score,
     p_customers: seed.customers_served,
     p_max_combo: seed.max_combo,
+    // Historical Base44 bests belong on the all-time board only — they must
+    // never top a daily/weekly/monthly board the player didn't earn today.
+    p_all_periods: false,
   });
   if (error) { console.error('leaderboard_upsert_best (seed) error:', error.message); return; }
   await admin.from('leaderboard_seed').update({ seeded_at: new Date().toISOString() }).eq('email', email);
