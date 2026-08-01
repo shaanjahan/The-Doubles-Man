@@ -3,7 +3,7 @@ import { Image } from '@/components/ui/image';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import {
   BUSINESS_TIERS, businessCostFor, businessIncomePerMin, collectableCoins,
-  businessPerRoundBonus, MAX_IDLE_MINUTES, idleCapForTier,
+  businessPerRoundBonus, MAX_IDLE_MINUTES, fleetIdleCap,
 } from '@/lib/game/catalog';
 import CoinIcon from '@/components/CoinIcon';
 import { Store as StoreIcon, Lock, Loader2 } from 'lucide-react';
@@ -29,7 +29,7 @@ export default function MyBusiness() {
 
   const businesses = player.businesses || [];
   const ownedCount = (tier) => businesses.find((b) => b.tier === tier)?.count || 0;
-  const idleCap = idleCapForTier(player.businessTier);
+  const idleCap = fleetIdleCap(businesses, player.businessTier);
   const collectable = collectableCoins(businesses, player.lastBusinessCollect, player.businessTier);
   const perMin = businessIncomePerMin(businesses);
   const perRound = businessPerRoundBonus(businesses);
