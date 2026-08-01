@@ -9,22 +9,20 @@ export interface BusinessUnit {
   costGrowth: number;
   incomePerMin: number;
   perRound: number;
-  capContribution: number;
 }
 
-// capContribution: each owned copy adds this much to the fleet's per-collection
-// ceiling (see fleetIdleCap). Sized so a copy's own slice fills in a constant
-// time regardless of fleet size (contribution/incomePerMin: Bike ~4h ... Monarch
-// ~1.5h) and so marginal top-tier copies pay back in ~1-2 weeks of casual
-// collecting — the tier-based cap alone made every copy after the first Monarch
-// idle-worthless (one Monarch's 90/min already filled the 24k cap in a 4h window).
 export const BUSINESS_UNITS: BusinessUnit[] = [
-  { tier: 0, baseCost: 300,    costGrowth: 1.50, incomePerMin: 2,  perRound: 3,   capContribution: 500 },
-  { tier: 1, baseCost: 1500,   costGrowth: 1.55, incomePerMin: 6,  perRound: 8,   capContribution: 1000 },
-  { tier: 3, baseCost: 8000,   costGrowth: 1.60, incomePerMin: 16, perRound: 20,  capContribution: 2000 },
-  { tier: 5, baseCost: 40000,  costGrowth: 1.65, incomePerMin: 40, perRound: 50,  capContribution: 4500 },
-  { tier: 6, baseCost: 180000, costGrowth: 1.70, incomePerMin: 90, perRound: 120, capContribution: 8000 },
+  { tier: 0, baseCost: 300,    costGrowth: 1.50, incomePerMin: 2,  perRound: 3 },
+  { tier: 1, baseCost: 1500,   costGrowth: 1.55, incomePerMin: 6,  perRound: 8 },
+  { tier: 3, baseCost: 8000,   costGrowth: 1.60, incomePerMin: 16, perRound: 20 },
+  { tier: 5, baseCost: 40000,  costGrowth: 1.65, incomePerMin: 40, perRound: 50 },
+  { tier: 6, baseCost: 180000, costGrowth: 1.70, incomePerMin: 90, perRound: 120 },
 ];
+
+// Per-collection ceiling = this fraction of the fleet's invested value (the
+// same businessNetValue the Empire Value leaderboard ranks). One number drives
+// both: buying a business visibly raises your board standing AND your MAX.
+export const IDLE_CAP_PCT = 0.10;
 
 // Offline accrual is capped so an idle player can't stockpile unbounded income.
 export const MAX_IDLE_MINUTES = 4 * 60;
@@ -41,17 +39,17 @@ export function getUnit(tier: number): BusinessUnit | undefined {
   return BUSINESS_UNITS.find((b) => b.tier === tier);
 }
 
-// Fleet-scaled per-collection ceiling: every owned copy contributes its slice,
-// so buying more businesses ALWAYS raises the ceiling (the old tier-based cap
-// saturated at roughly one Monarch). The old tier cap survives as a floor via
-// max(): no existing player's ceiling ever decreases (tester grandfathering).
+// Per-collection ceiling = IDLE_CAP_PCT of the fleet's invested value (the
+// exact businessNetValue the Empire Value board ranks) — "your stalls hold up
+// to 10% of your empire's value". Every purchase raises the ceiling in direct
+// proportion to what it cost, so board rank and storage grow together. The old
+// tier cap survives as a floor via max(): new players (one 300-coin Bike would
+// otherwise cap at 30) keep the 2,000+ floor, and no existing player's ceiling
+// ever decreases (tester grandfathering). The 4h accrual window still applies
+// on top — for deep fleets the window, not this cap, is the binding limit.
 export function fleetIdleCap(businesses: any[] = [], businessTier: number = 0): number {
-  let sum = 0;
-  for (const b of businesses) {
-    const u = getUnit(b?.tier);
-    if (u) sum += u.capContribution * (b.count || 0);
-  }
-  return Math.max(idleCapForTier(businessTier), sum);
+  const pctCap = Math.floor(businessNetValue(businesses) * IDLE_CAP_PCT);
+  return Math.max(idleCapForTier(businessTier), pctCap);
 }
 
 export function businessCost(unit: BusinessUnit, owned: number): number {

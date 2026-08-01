@@ -21,11 +21,11 @@ export const SAUCE_CHOICES = ['tamarind'];
 export const EXTRA_CHOICES = [];
 
 export const BUSINESS_TIERS = [
-  { id: 0, name: 'Doubles Bike',     emoji: '🏍️', image: '/game/f3998ba40_C5615C5C-7437-47CA-8E2E-E15D68A8FA44.webp', coinMult: 1.0, xpReq: 0,     baseCost: 300,    costGrowth: 1.50, incomePerMin: 2,  perRound: 3,   capContribution: 500 },
-  { id: 1, name: 'Doubles Stand',    emoji: '🛒', image: '/game/ac997e204_1784D90D-6B0D-4A2F-BFE8-148384171E50.webp', coinMult: 1.2, xpReq: 250,   baseCost: 1500,   costGrowth: 1.55, incomePerMin: 6,  perRound: 8,   capContribution: 1000 },
-  { id: 3, name: 'Roti Shop',        emoji: '🏪', image: '/game/ac3495038_D538FA13-5197-4EB7-B4B6-F07D4DDD6F0E.webp', coinMult: 1.5, xpReq: 1800,  baseCost: 8000,   costGrowth: 1.60, incomePerMin: 16, perRound: 20,  capContribution: 2000 },
-  { id: 5, name: 'Doubles Factory',  emoji: '🏭', image: '/game/3dfc308c7_4BFD8695-F32F-4C9F-92CE-ABEAAFA5CA05.webp', coinMult: 2.2, xpReq: 11000, baseCost: 40000,  costGrowth: 1.65, incomePerMin: 40, perRound: 50,  capContribution: 4500 },
-  { id: 6, name: 'Doubles Monarch',  emoji: '👑', image: '/game/6cd115be2_243B6729-72C2-4B67-B6E2-340AEC2037AE2.webp', coinMult: 3.0, xpReq: 26000, baseCost: 180000, costGrowth: 1.70, incomePerMin: 90, perRound: 120, capContribution: 8000 },
+  { id: 0, name: 'Doubles Bike',     emoji: '🏍️', image: '/game/f3998ba40_C5615C5C-7437-47CA-8E2E-E15D68A8FA44.webp', coinMult: 1.0, xpReq: 0,     baseCost: 300,    costGrowth: 1.50, incomePerMin: 2,  perRound: 3 },
+  { id: 1, name: 'Doubles Stand',    emoji: '🛒', image: '/game/ac997e204_1784D90D-6B0D-4A2F-BFE8-148384171E50.webp', coinMult: 1.2, xpReq: 250,   baseCost: 1500,   costGrowth: 1.55, incomePerMin: 6,  perRound: 8 },
+  { id: 3, name: 'Roti Shop',        emoji: '🏪', image: '/game/ac3495038_D538FA13-5197-4EB7-B4B6-F07D4DDD6F0E.webp', coinMult: 1.5, xpReq: 1800,  baseCost: 8000,   costGrowth: 1.60, incomePerMin: 16, perRound: 20 },
+  { id: 5, name: 'Doubles Factory',  emoji: '🏭', image: '/game/3dfc308c7_4BFD8695-F32F-4C9F-92CE-ABEAAFA5CA05.webp', coinMult: 2.2, xpReq: 11000, baseCost: 40000,  costGrowth: 1.65, incomePerMin: 40, perRound: 50 },
+  { id: 6, name: 'Doubles Monarch',  emoji: '👑', image: '/game/6cd115be2_243B6729-72C2-4B67-B6E2-340AEC2037AE2.webp', coinMult: 3.0, xpReq: 26000, baseCost: 180000, costGrowth: 1.70, incomePerMin: 90, perRound: 120 },
 ];
 
 // Idle "My Business" — owned businesses earn dollars over real time (capped at
@@ -44,18 +44,26 @@ export function idleCapForTier(businessTier) {
   return IDLE_CAPS[i];
 }
 
-// Fleet-scaled per-collection ceiling: every owned copy adds its
-// capContribution, so buying more businesses always raises the ceiling (the
-// tier-based cap alone saturated at ~one Monarch, making further copies
-// idle-worthless). The old tier cap survives as a floor via max() — no
-// player's ceiling ever decreases. Mirror of _shared/businesses.ts.
-export function fleetIdleCap(businesses = [], businessTier = 0) {
-  let sum = 0;
+// Per-collection ceiling = IDLE_CAP_PCT of the fleet's invested value (the
+// exact businessNetValue the Empire Value board ranks) — "your stalls hold up
+// to 10% of your empire's value". Old tier cap stays as a floor so new players
+// keep 2,000+ and nobody's ceiling ever decreases. Mirror of _shared/businesses.ts.
+export const IDLE_CAP_PCT = 0.10;
+
+export function businessNetValue(businesses = []) {
+  let total = 0;
   for (const b of businesses) {
     const u = BUSINESS_TIERS.find((x) => x.id === b?.tier);
-    if (u) sum += u.capContribution * (b.count || 0);
+    if (!u) continue;
+    const count = Math.max(0, Math.floor(b.count || 0));
+    for (let k = 0; k < count; k++) total += Math.floor(u.baseCost * Math.pow(u.costGrowth, k));
   }
-  return Math.max(idleCapForTier(businessTier), sum);
+  return total;
+}
+
+export function fleetIdleCap(businesses = [], businessTier = 0) {
+  const pctCap = Math.floor(businessNetValue(businesses) * IDLE_CAP_PCT);
+  return Math.max(idleCapForTier(businessTier), pctCap);
 }
 
 export function businessCostFor(tier, owned) {

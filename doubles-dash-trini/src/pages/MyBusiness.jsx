@@ -69,7 +69,7 @@ export default function MyBusiness() {
         <h1 className="text-3xl font-extrabold text-tropic-coral tracking-wide">My Business</h1>
       </div>
       <p className="text-xs text-white/60">
-        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — every business you buy raises your per-collection MAX, income accrues up to 4h while you're away, and each adds a bonus every round you play.
+        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — your stalls store up to 10% of your empire's value per collection, income accrues up to 4h while you're away, and each adds a bonus every round you play.
       </p>
 
       {/* Collect bar */}
@@ -170,7 +170,7 @@ export default function MyBusiness() {
       </section>
 
       <div className="text-[11px] text-white/50 text-center pt-1">
-        Costs rise as you buy more — and every business raises your collection MAX (currently {idleCap.toLocaleString()} dollars). Idle income accrues up to 4h.
+        Costs rise as you buy more — your stalls store up to 10% of your empire's value (currently {idleCap.toLocaleString()} dollars max). Idle income accrues up to 4h.
       </div>
     </div>
   );
