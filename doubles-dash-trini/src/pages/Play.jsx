@@ -6,7 +6,7 @@ import {
 import { spawnCustomer, classifyServe } from '@/lib/game/engine';
 import { sfx, unlockAudio } from '@/lib/game/useSound';
 import { usePlayerState } from '@/lib/game/PlayerContext';
-import { Flame, Play as PlayIcon, Gem, Heart, X } from 'lucide-react';
+import { Flame, Play as PlayIcon, Gem, Heart, X, Pause } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -159,16 +159,17 @@ export default function Play() {
   const [outcome, setOutcome] = useState(null);
   const savedRef = useRef(false);
   const [askExit, setAskExit] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (player) setLocId(player.currentLocationId || 0);
   }, [player?.id]);
 
   useEffect(() => {
-    if (phase !== 'play') return;
+    if (phase !== 'play' || paused) return;
     const t = setInterval(() => setGame((g) => tickGame(g)), TICK_MS);
     return () => clearInterval(t);
-  }, [phase]);
+  }, [phase, paused]);
 
   useEffect(() => {
     if (!game?.flash) return;
@@ -222,6 +223,7 @@ export default function Play() {
     const loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
     if (loc.unlockTier > player.businessTier) return;
     savedRef.current = false;
+    setPaused(false);
     setGame(startState(buildConfig(player, loc)));
     setOutcome(null);
     setPhase('play');
@@ -232,6 +234,7 @@ export default function Play() {
     // re-grant it next time.
     try { localStorage.removeItem('doubles_pendingRound'); } catch {}
     setGame(null);
+    setPaused(false);
     setPhase('prep');
     setAskExit(false);
     navigate('/');
@@ -366,6 +369,14 @@ export default function Play() {
             >
               <X size={16} />
             </button>
+            <button
+              type="button"
+              onClick={() => setPaused(true)}
+              aria-label="Pause round"
+              className="flex items-center justify-center w-8 h-8 mr-1 rounded-full bg-white/10 hover:bg-white/20 text-tropic-gold active:scale-90 transition no-tap-highlight touch-manipulation"
+            >
+              <Pause size={15} />
+            </button>
             <span className="flex items-center gap-0.5">
               {Array.from({ length: MAX_MISTAKES }).map((_, i) => (
                 <Heart key={i} size={14} className={i < g.mistakes ? 'text-tropic-coral/25' : 'text-tropic-coral fill-tropic-coral'} />
@@ -392,6 +403,30 @@ export default function Play() {
             })}
           </div>
         </div>
+
+        {/* Pause overlay: covers the whole board so orders can't be studied
+            while time is frozen — pausing is a break, not a planning tool. */}
+        {paused && (
+          <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center gap-4 px-8">
+            <div className="text-5xl">⏸️</div>
+            <div className="text-2xl font-extrabold text-tropic-gold tracking-widest">PAUSED</div>
+            <p className="text-xs text-white/50 text-center">Time is frozen — customers will wait for you.</p>
+            <button
+              type="button"
+              onClick={() => setPaused(false)}
+              className="mt-2 bg-gradient-to-r from-tropic-magenta to-tropic-sea text-white font-extrabold px-12 py-3.5 rounded-full shadow-xl active:scale-95 transition duration-75 no-tap-highlight touch-manipulation"
+            >
+              ▶ Resume
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPaused(false); setAskExit(true); }}
+              className="text-white/60 text-xs font-bold underline underline-offset-2 no-tap-highlight touch-manipulation"
+            >
+              Quit round
+            </button>
+          </div>
+        )}
 
         {g.flash && (
           <div
