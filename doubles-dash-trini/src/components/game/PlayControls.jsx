@@ -36,7 +36,7 @@ export default React.memo(function PlayControls({ prepIds, onAdd, onClear, onSer
         <button
           onClick={() => onServe && onServe(serveCustomerId)}
           disabled={!serveCustomerId}
-          className="w-full bg-gradient-to-r from-tropic-magenta to-tropic-sea font-extrabold text-white py-3 rounded-2xl shadow-lg active:scale-95 transition disabled:opacity-40"
+          className="w-full bg-gradient-to-r from-tropic-magenta to-tropic-sea font-extrabold text-white py-3 rounded-2xl shadow-lg active:scale-95 transition duration-75 disabled:opacity-40 no-tap-highlight touch-manipulation select-none"
         >
           Serve ⤵
         </button>
