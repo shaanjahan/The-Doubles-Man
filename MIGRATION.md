@@ -644,3 +644,9 @@ the only diff was one tester actively playing during the window):
 Deployed: finalize-round + buy-upgrade functions, cap migration via Management
 API, web via Netlify. Verified: player snapshot identical, deployed function
 tier_scaled+grandfathered=true, buy-upgrade recognizes `legacy`.
+
+**Amendment (2026-08-01):** coin_small / coin_medium reverted to their
+Apple-submitted amounts (1,000 and 6,000+500) — those two IAPs are in review
+with those values, so display+grant must match. Only coin_large (not
+submitted, allowlist-hidden) keeps the time-saved sizing. Retune the two
+submitted packs only alongside an Apple resubmission.
