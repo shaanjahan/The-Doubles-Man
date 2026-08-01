@@ -678,3 +678,15 @@ both server-recorded): earnings 117,705,355 -> wallet topped up +87,705,355;
 round_score board entry set to 117,771,680 (earnings + 44,700 perfect bonus +
 21,625 combo bonus). Owner-directed data correction, derived from recorded
 round counters via the game's own payout formula.
+
+## Auth-contract guard (2026-08-01)
+
+A user hit a signup dead-end: mailer_otp_length=8 in live config vs the app's
+six OTP input slots (fixed by PATCHing to 6). Class of bug: server config vs
+app contract drift, invisible until a real user trips it.
+`scripts/check-auth-config.ts` now asserts the full contract — OTP length,
+autoconfirm off, custom SMTP present (also detects the all-or-nothing SMTP
+block being wiped again), verified-domain sender, Apple enabled, prod
+site_url — AND mints a real signup OTP via admin generate_link for a
+throwaway account (deleted after) to verify true code length end-to-end.
+**Run it after any auth/dashboard change and before onboarding testers.**
