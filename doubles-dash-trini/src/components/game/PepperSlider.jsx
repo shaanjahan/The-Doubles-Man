@@ -26,7 +26,7 @@ export default function PepperSlider({ prepIds = [], onAdd }) {
             <button
               key={s.id}
               onClick={() => onAdd(s.id)}
-              className={`flex-1 ${s.tint} rounded-2xl py-2 px-1 flex flex-col items-center gap-0.5 transition active:scale-90 no-tap-highlight ${
+              className={`flex-1 ${s.tint} rounded-2xl py-2 px-1 flex flex-col items-center gap-0.5 transition duration-75 active:scale-90 no-tap-highlight touch-manipulation select-none ${
                 isActive ? 'ring-2 ring-white/80' : 'ring-1 ring-white/10'
               }`}
               aria-label={`${s.label} pepper`}
