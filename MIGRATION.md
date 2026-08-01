@@ -671,3 +671,10 @@ uncapped; coin IAPs are now convenience for casual players; Legacy crowns and
 the parked sinks are the remaining inflation control. A 30,000,000-coin
 make-good was credited to the dev account for the one capped marathon round
 (exact withheld amount was unrecoverable).
+
+**Correction (2026-08-01):** the 30M make-good was superseded by the exact
+formula-derived figure for the capped marathon round (894 served / 865 combo,
+both server-recorded): earnings 117,705,355 -> wallet topped up +87,705,355;
+round_score board entry set to 117,771,680 (earnings + 44,700 perfect bonus +
+21,625 combo bonus). Owner-directed data correction, derived from recorded
+round counters via the game's own payout formula.
