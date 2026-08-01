@@ -1,43 +1,13 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44, supabase } from '@/api/base44Client';
 
-// Keep users signed in only while they're "recently active": if the app is
-// reopened (or the tab refocuses) more than GRACE_MS after the last recorded
-// activity, the token is cleared so the user lands on the login screen again.
-const ACTIVITY_KEY = 'base44_last_active';
-const GRACE_MS = 60 * 60 * 1000; // 1 hour
-
-function getLastActive() {
-  const v = Number(localStorage.getItem(ACTIVITY_KEY) || 0);
-  return Number.isFinite(v) ? v : 0;
-}
-function stampActive() {
-  try { localStorage.setItem(ACTIVITY_KEY, String(Date.now())); } catch {}
-}
-// Any explicit sign-in (Apple/Google/email/OTP) or manual logout must reset
-// the inactivity window. Otherwise a stale `base44_last_active` stamp from
-// the previous session — which survives across an OAuth redirect because
-// localStorage is never cleared — makes the next boot's inactivityExpired()
-// fire on the FRESH token and log the user straight back out. That's why
-// signing in with Apple (after being away >1h) bounced to the landing page
-// instead of showing the player's progress.
+// Sessions persist until the player explicitly logs out (profile -> account
+// dialog). The old 1-hour inactivity logout (a Base44-era carryover) forced a
+// fresh sign-in after any absence >1h — wrong for a casual game, and it could
+// bounce an App Review session mid-review. resetActivityStamp stays exported
+// as a no-op (Login/Register still call it) and clears the legacy stamp.
 export function resetActivityStamp() {
-  try { localStorage.removeItem(ACTIVITY_KEY); } catch {}
-}
-
-function inactivityExpired() {
-  const last = getLastActive();
-  if (last && Date.now() - last > GRACE_MS) {
-    // Clear the stale activity stamp on expiry. Without this the old stamp
-    // survives the logout, so a fresh login lands on "/", sees a "stale"
-    // stamp again, and logs straight back out — a permanent login loop for
-    // returning users. Removing it lets the next successful auth stamp a
-    // fresh window.
-    try { localStorage.removeItem(ACTIVITY_KEY); } catch {}
-    base44.auth.logout('/'); // Public landing; the login gate shows login for gated routes.
-    return true;
-  }
-  return false;
+  try { localStorage.removeItem('base44_last_active'); } catch {}
 }
 
 // A transient network failure after Apple/Google OAuth redirects back to the
@@ -128,7 +98,6 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       if (session?.user) {
-        if (event === 'SIGNED_IN') stampActive();
         setUser(session.user);
         setIsAuthenticated(true);
         setAuthError(null);
@@ -138,22 +107,6 @@ export const AuthProvider = ({ children }) => {
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
-
-  // When the user returns to an open tab, recheck the inactivity window: if
-  // they were away longer than GRACE_MS, sign them out; otherwise refresh.
-  useEffect(() => {
-    function onVisibility() {
-      if (document.visibilityState !== 'visible') return;
-      if (inactivityExpired()) return;
-      stampActive();
-    }
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('focus', onVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('focus', onVisibility);
-    };
   }, []);
 
   // Auto-recover the moment connectivity returns: if we previously parked on
@@ -180,15 +133,6 @@ export const AuthProvider = ({ children }) => {
       setAppPublicSettings(null);
       setIsLoadingPublicSettings(false);
 
-      // Inactivity window: if the user has been away longer than GRACE_MS,
-      // inactivityExpired() signs them out and we stop here.
-      if (inactivityExpired()) {
-        setIsLoadingAuth(false);
-        setAuthChecked(true);
-        setIsAuthenticated(false);
-        return;
-      }
-
       await checkUserAuth();
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -213,7 +157,6 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         setUser(currentUser);
         setIsAuthenticated(true);
-        stampActive();
       } else {
         // The adapter's me() returns null when there's no Supabase session
         // (Base44's SDK threw instead) — treat that as simply not authenticated.
