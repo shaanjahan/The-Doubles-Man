@@ -18,6 +18,9 @@ export default function AchievementToast() {
           </div>
           <div className="font-extrabold text-slate-800 text-sm truncate">{a.name}</div>
           <div className="text-xs text-slate-500 truncate">{a.description}</div>
+          <div className="text-xs font-extrabold text-amber-700 mt-0.5">
+            +💵 {(a.reward?.coins || 0).toLocaleString()} · +💎 {a.reward?.gems || 0}
+          </div>
         </div>
       </div>
     </div>

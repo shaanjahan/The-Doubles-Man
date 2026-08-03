@@ -3,7 +3,7 @@ import { Image } from '@/components/ui/image';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import {
   BUSINESS_TIERS, businessCostFor, businessIncomePerMin, collectableCoins,
-  businessPerRoundBonus, MAX_IDLE_MINUTES, idleCapForTier,
+  businessPerRoundBonus, MAX_IDLE_MINUTES, fleetIdleCap,
 } from '@/lib/game/catalog';
 import CoinIcon from '@/components/CoinIcon';
 import { Store as StoreIcon, Lock, Loader2 } from 'lucide-react';
@@ -29,11 +29,21 @@ export default function MyBusiness() {
 
   const businesses = player.businesses || [];
   const ownedCount = (tier) => businesses.find((b) => b.tier === tier)?.count || 0;
-  const idleCap = idleCapForTier(player.businessTier);
+  const idleCap = fleetIdleCap(businesses, player.businessTier);
   const collectable = collectableCoins(businesses, player.lastBusinessCollect, player.businessTier);
   const perMin = businessIncomePerMin(businesses);
   const perRound = businessPerRoundBonus(businesses);
   const maxStorable = Math.min(perMin * MAX_IDLE_MINUTES, idleCap);
+  // Meter state: how full the idle bucket is and how long until it tops out.
+  // collectable = min(perMin × elapsed, cap), so remaining time is simply the
+  // shortfall at the fill rate (valid for both the cap- and window-bound case).
+  const isFull = perMin > 0 && collectable >= maxStorable;
+  const remainingMin = perMin > 0 && !isFull ? (maxStorable - collectable) / perMin : 0;
+  const fmtEta = (min) => {
+    const m = Math.max(1, Math.ceil(min));
+    const h = Math.floor(m / 60);
+    return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+  };
 
   async function collect() {
     if (busy || collectable <= 0) return;
@@ -59,7 +69,7 @@ export default function MyBusiness() {
         <h1 className="text-3xl font-extrabold text-tropic-coral tracking-wide">My Business</h1>
       </div>
       <p className="text-xs text-white/60">
-        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — your per-collection cap rises with your rank (2,000 → 3,500 → 6,500 → 12,000 → 24,000), accrues up to 4h away, and each adds a bonus every round you play.
+        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — your stalls store up to 5% of your empire's value per collection, income accrues up to 24 hours while you're away, and each adds a bonus every round you play.
       </p>
 
       {/* Collect bar */}
@@ -83,8 +93,19 @@ export default function MyBusiness() {
           </button>
         </div>
         {perMin > 0 && (
-          <div className="mt-3 h-2 rounded-full bg-black/20 overflow-hidden">
-            <div className="h-full bg-white/90 rounded-full transition-all" style={{ width: `${Math.min(100, maxStorable > 0 ? (collectable / maxStorable) * 100 : 0)}%` }} />
+          <div className="mt-3">
+            <div className={`h-2.5 rounded-full bg-black/20 overflow-hidden ${isFull ? 'ring-1 ring-tropic-gold' : ''}`}>
+              <div
+                className={`h-full rounded-full transition-all ${isFull ? 'bg-tropic-gold animate-pulse' : 'bg-white/90'}`}
+                style={{ width: `${Math.min(100, maxStorable > 0 ? (collectable / maxStorable) * 100 : 0)}%` }}
+              />
+            </div>
+            <div className="mt-1 flex items-center justify-between text-[11px] font-extrabold">
+              <span className="opacity-80">MAX {maxStorable.toLocaleString()} <CoinIcon className="w-3 h-3 inline -mt-0.5" /></span>
+              <span className={isFull ? 'text-tropic-gold' : 'opacity-80'}>
+                {isFull ? '⚡ FULL — collect now!' : `⏱ Full in ${fmtEta(remainingMin)}`}
+              </span>
+            </div>
           </div>
         )}
       </section>
@@ -116,7 +137,7 @@ export default function MyBusiness() {
                   {owned > 0 && <span className="text-[10px] font-bold px-1.5 rounded-full bg-tropic-sea text-white">×{owned}</span>}
                 </div>
                 <div className="text-[11px] text-slate-600">
-                  {unlocked ? `Each earns ${unitIncome.toLocaleString()}/min idle · +${biz.perRound} per round` : `Unlocks at Level ${UNLOCK_LEVEL[biz.id] ?? '?'}`}
+                  {unlocked ? `Each earns ${unitIncome.toLocaleString()}/min idle — up to ${(unitIncome * MAX_IDLE_MINUTES).toLocaleString()}/day · +${biz.perRound} per round` : `Unlocks at Level ${UNLOCK_LEVEL[biz.id] ?? '?'}`}
                 </div>
                 {owned > 0 && (
                   <div className="text-[10px] text-slate-500 mt-0.5">Owned income: {(unitIncome * owned).toLocaleString()}/min</div>
@@ -149,7 +170,7 @@ export default function MyBusiness() {
       </section>
 
       <div className="text-[11px] text-white/50 text-center pt-1">
-        Costs rise as you buy more. Idle income accrues up to 4h and is capped at {idleCap.toLocaleString()} dollars per collection.
+        Costs rise as you buy more — your stalls store up to 5% of your empire's value (currently {idleCap.toLocaleString()} dollars max). Idle income accrues up to 24 hours.
       </div>
     </div>
   );
