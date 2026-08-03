@@ -10,6 +10,69 @@ const SCENE_URL = '/game/0d9719541_1336D320-FC46-4E41-BD87-2AACAC7E4A74.webp';
 const BANGERS = "'Bangers', ui-sans-serif, system-ui, sans-serif";
 const NUNITO = "'Nunito', ui-sans-serif, system-ui, sans-serif";
 
+// Hand-drawn card art (inline SVG so html2canvas rasterizes it identically on
+// every device — emoji glyphs render differently per platform).
+function CrownArt({ size = 20 }) {
+  return (
+    <svg width={size} height={size * 0.85} viewBox="0 0 48 41" aria-hidden="true">
+      <path d="M6,28 L4,10 L14,20 L24,4 L34,20 L44,10 L42,28 Z" fill="#fbbf24" stroke="#7f1d1d" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="4" cy="9" r="3" fill="#fde68a" stroke="#7f1d1d" strokeWidth="2" />
+      <circle cx="24" cy="4" r="3.2" fill="#fde68a" stroke="#7f1d1d" strokeWidth="2" />
+      <circle cx="44" cy="9" r="3" fill="#fde68a" stroke="#7f1d1d" strokeWidth="2" />
+      <rect x="5" y="28" width="38" height="9" rx="2.5" fill="#fbbf24" stroke="#7f1d1d" strokeWidth="2.5" />
+      <circle cx="24" cy="32.5" r="2.6" fill="#ef4444" stroke="#7f1d1d" strokeWidth="1.5" />
+      <circle cx="14.5" cy="32.5" r="2" fill="#22c55e" stroke="#7f1d1d" strokeWidth="1.5" />
+      <circle cx="33.5" cy="32.5" r="2" fill="#3b82f6" stroke="#7f1d1d" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function FlameArt({ size = 20 }) {
+  return (
+    <svg width={size * 0.8} height={size} viewBox="0 0 32 40" aria-hidden="true">
+      <path d="M16,2 C22,10 28,14 28,25 A12,12 0 1,1 4,25 C4,17 10,12 11,6 C13,10 15,9 16,2 Z" fill="#ef4444" stroke="#7f1d1d" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M16,11 C20,16 24,19 24,26 A8,8 0 1,1 8,26 C8,21 12,18 13,13.5 C14,16 15.4,15.5 16,11 Z" fill="#f97316" />
+      <path d="M16,21 C18,24 20,25 20,29 A4.5,4.5 0 1,1 11,29 C11,26 14,24.5 16,21 Z" fill="#fde68a" />
+    </svg>
+  );
+}
+
+function TriniFlag({ height = 10 }) {
+  const w = height * 1.5;
+  return (
+    <svg width={w} height={height} viewBox="0 0 30 20" aria-hidden="true">
+      <defs>
+        <clipPath id="tt-clip"><rect width="30" height="20" rx="2.5" /></clipPath>
+      </defs>
+      <g clipPath="url(#tt-clip)">
+        <rect width="30" height="20" fill="#d81c2f" />
+        <line x1="1" y1="-2" x2="29" y2="22" stroke="#ffffff" strokeWidth="7.5" />
+        <line x1="1" y1="-2" x2="29" y2="22" stroke="#0b0b0d" strokeWidth="4.5" />
+      </g>
+      <rect width="30" height="20" rx="2.5" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function GuyanaFlag({ height = 10 }) {
+  const w = height * 1.5;
+  return (
+    <svg width={w} height={height} viewBox="0 0 30 20" aria-hidden="true">
+      <defs>
+        <clipPath id="gy-clip"><rect width="30" height="20" rx="2.5" /></clipPath>
+      </defs>
+      <g clipPath="url(#gy-clip)">
+        <rect width="30" height="20" fill="#009e49" />
+        <polygon points="0,0 30,10 0,20" fill="#ffffff" />
+        <polygon points="0,1.8 26,10 0,18.2" fill="#fcd116" />
+        <polygon points="0,0 15,10 0,20" fill="#0b0b0d" />
+        <polygon points="0,2.6 11.5,10 0,17.4" fill="#ce1126" />
+      </g>
+      <rect width="30" height="20" rx="2.5" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="1" />
+    </svg>
+  );
+}
+
 /**
  * ShareToStories — captures a branded 9:16 score/rank card and shares it.
  * Preferred path: native Web Share API (lets the user pick Instagram /
@@ -23,7 +86,6 @@ const NUNITO = "'Nunito', ui-sans-serif, system-ui, sans-serif";
  *  big       — the headline number / string (e.g. score or "#3")
  *  bigLabel  — caption under the big number (e.g. "points")
  *  subline   — supporting line (e.g. "Served 8 · Perfect 6 · 5x combo")
- *  emoji     — mood emoji shown beside the headline
  *  footer    — chip text at the bottom (e.g. "Beat my score!")
  */
 export default function ShareStories({
@@ -33,7 +95,6 @@ export default function ShareStories({
   bigLabel,
   subline,
   footer = 'Beat my score!',
-  emoji = '🥘',
 }) {
   const cardRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -253,13 +314,17 @@ export default function ShareStories({
               </div>
             </div>
 
-            {/* Body: headline + big number */}
+            {/* Body: headline + big number, flanked by drawn ornaments */}
             <div className="flex flex-col items-center">
-              <div
-                className="uppercase font-extrabold"
-                style={{ fontSize: 12, letterSpacing: '0.22em', color: '#fde68a', textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}
-              >
-                {emoji} {headline} {emoji}
+              <div className="flex items-center gap-2">
+                {isRank ? <CrownArt size={22} /> : <FlameArt size={22} />}
+                <span
+                  className="uppercase font-extrabold"
+                  style={{ fontSize: 12, letterSpacing: '0.22em', color: '#fde68a', textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}
+                >
+                  {headline}
+                </span>
+                {isRank ? <CrownArt size={22} /> : <FlameArt size={22} />}
               </div>
               <div
                 className="leading-none mt-2"
@@ -303,8 +368,10 @@ export default function ShareStories({
               >
                 {footer}
               </div>
-              <div className="mt-2 font-bold" style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>
-                🇹🇹 thedoublesman.com 🇬🇾
+              <div className="mt-2 flex items-center gap-1.5 font-bold" style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>
+                <TriniFlag height={10} />
+                <span>thedoublesman.com</span>
+                <GuyanaFlag height={10} />
               </div>
             </div>
           </div>

@@ -103,8 +103,7 @@ export default function Leaderboard() {
               headline="Leaderboard Rank"
               big={`#${myIdx + 1}`}
               bigLabel={`${(myEntry?.score ?? 0).toLocaleString()} pts`}
-              subline={`${tier.emoji} ${tier.name} · ${player?.displayName || 'Me'}`}
-              emoji={tier.emoji || c?.emoji || '🏆'}
+              subline={`${tier.name} · ${player?.displayName || 'Me'}`}
               footer="Can you beat my empire?"
             />
           </div>
