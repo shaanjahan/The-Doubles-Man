@@ -651,21 +651,42 @@ with those values, so display+grant must match. Only coin_large (not
 submitted, allowlist-hidden) keeps the time-saved sizing. Retune the two
 submitted packs only alongside an Apple resubmission.
 
-## Economy tuning v2 (2026-08-01) — fleet-scaled idle cap
+**Economy v2 parked (2026-08-01):** the fleet-scaled idle cap + collection
+meter were reverted on main at the user's direction — My Business must look
+exactly as it did at Apple submission until the next planned feature update.
+The complete work lives on branch `feature/fleet-idle-cap` (merge it back when
+the user says to ship the new-features update). Economy v1 (Legacy crowns,
+tier-scaled hourly cap, tier-mult bugfix) remains live.
 
-The per-collection idle ceiling was keyed to highest tier only (IDLE_CAPS,
-2k..24k), so once fleet income filled the cap inside the 4h window — which ONE
-Monarch already did — every further business copy added zero idle value (2nd
-Monarch: 306k for +120/round ≈ never pays back). This killed the buy-more-
-businesses loop and is why late-game coins pooled unspent.
+## Economy v3 (2026-08-01) — original-way scoring AND wallets (owner decision)
 
-Fix: `capContribution` per copy (Bike 500 / Stand 1k / Roti 2k / Factory 4.5k /
-Monarch 8k); `fleetIdleCap(businesses, tier) = max(old tier cap, Σ contribution
-× count)` in _shared/businesses.ts + catalog.js, used by manage-business
-collect, collectableCoins, and the MyBusiness UI. max() floor = no player's
-ceiling ever decreases (tester grandfathering); one-of-each fleets stay at 24k
-until they outgrow it. Fill time per type is constant (contribution/income:
-Bike ~4h .. Monarch ~1.5h); marginal Monarch pays back in ~1-2 weeks of casual
-collecting. Pure code change — no SQL migration (cap is passed into
-business_collect_apply as a parameter), no player rows touched. Verified with
-Deno unit checks (floor/parity/growth/collection clamp).
+Round scores now use full round earnings (coinsEarned, plausibility-clamped)
+instead of the post-cap payout — capped-era scores had made the migrated
+Base44 records unbeatable. Then, at the owner's direction, the hourly WALLET
+cap was removed entirely (migration 20260801150000): rounds pay complete
+earnings, original Base44 economics. Anti-cheat plausibility ceilings and
+earnings_log recording remain. The tier-scaled-cap experiment (v1) lasted
+2026-07-31 -> 08-01. Consequence accepted by owner: marathon players earn
+uncapped; coin IAPs are now convenience for casual players; Legacy crowns and
+the parked sinks are the remaining inflation control. A 30,000,000-coin
+make-good was credited to the dev account for the one capped marathon round
+(exact withheld amount was unrecoverable).
+
+**Correction (2026-08-01):** the 30M make-good was superseded by the exact
+formula-derived figure for the capped marathon round (894 served / 865 combo,
+both server-recorded): earnings 117,705,355 -> wallet topped up +87,705,355;
+round_score board entry set to 117,771,680 (earnings + 44,700 perfect bonus +
+21,625 combo bonus). Owner-directed data correction, derived from recorded
+round counters via the game's own payout formula.
+
+## Auth-contract guard (2026-08-01)
+
+A user hit a signup dead-end: mailer_otp_length=8 in live config vs the app's
+six OTP input slots (fixed by PATCHing to 6). Class of bug: server config vs
+app contract drift, invisible until a real user trips it.
+`scripts/check-auth-config.ts` now asserts the full contract — OTP length,
+autoconfirm off, custom SMTP present (also detects the all-or-nothing SMTP
+block being wiped again), verified-domain sender, Apple enabled, prod
+site_url — AND mints a real signup OTP via admin generate_link for a
+throwaway account (deleted after) to verify true code length end-to-end.
+**Run it after any auth/dashboard change and before onboarding testers.**

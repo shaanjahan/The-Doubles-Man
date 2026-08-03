@@ -242,7 +242,14 @@ serveWithCors(async (req) => {
       return Response.json({ player: toClientPlayer(newPlayer, newStats), outcome: null, duplicate: true });
     }
 
-    const score = Math.round(coinsGranted + perfectCount * 50 + maxCombo * 25);
+    // Leaderboard score measures PERFORMANCE, not payout: it uses the round's
+    // full earned coins (coinsEarned — already clamped by the anti-cheat
+    // plausibility ceiling above), NOT coinsGranted (post-hourly-cap wallet
+    // credit). The hourly cap governs the money supply; it must not judge
+    // skill — a capped marathon round scored a fraction of what the same
+    // performance scored in the Base44 era, making the migrated legacy records
+    // (set pre-cap) permanently unbeatable. Wallet stays capped; score doesn't.
+    const score = Math.round(coinsEarned + perfectCount * 50 + maxCombo * 25);
 
     // Leaderboard: best-effort, AFTER the economy commit (a failure here must
     // never roll back the player's rewards — Base44 treated it as non-fatal).
