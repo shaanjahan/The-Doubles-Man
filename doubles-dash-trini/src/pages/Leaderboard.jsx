@@ -99,6 +99,7 @@ export default function Leaderboard() {
           <div className="space-y-2">
             <p className="text-xs text-center text-slate-500">You're ranked #{myIdx + 1}. Keep on serving!</p>
             <ShareStories
+              variant="rank"
               headline="Leaderboard Rank"
               big={`#${myIdx + 1}`}
               bigLabel={`${(myEntry?.score ?? 0).toLocaleString()} pts`}

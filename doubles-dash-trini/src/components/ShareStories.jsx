@@ -1,26 +1,33 @@
 import React, { useRef, useState } from 'react';
-import { base44 } from '@/api/base44Client';
 import html2canvas from 'html2canvas';
 import { Instagram, Loader2 } from 'lucide-react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 
 const GAME_NAME = 'The Doubles Man';
+const LOGO_URL = '/game/6b677e427_A36ED237-6A52-436C-A969-12B05F2D0EFD.webp';
+const SCENE_URL = '/game/0d9719541_1336D320-FC46-4E41-BD87-2AACAC7E4A74.webp';
+
+const BANGERS = "'Bangers', ui-sans-serif, system-ui, sans-serif";
+const NUNITO = "'Nunito', ui-sans-serif, system-ui, sans-serif";
 
 /**
  * ShareToStories — captures a branded 9:16 score/rank card and shares it.
  * Preferred path: native Web Share API (lets the user pick Instagram /
- * WhatsApp / etc.). Fallback: upload the card and open the Instagram
- * Stories deep link with it as the background image.
+ * WhatsApp / etc.). Fallback: save the card to the device, then best-effort
+ * open Instagram so the user can post it.
  *
  * Props:
+ *  variant   — card art: 'score' (round finish, street-scene art) or
+ *              'rank' (leaderboard, big logo badge). Default 'score'.
  *  headline  — small uppercase label (e.g. "My Round Score")
  *  big       — the headline number / string (e.g. score or "#3")
  *  bigLabel  — caption under the big number (e.g. "points")
  *  subline   — supporting line (e.g. "Served 8 · Perfect 6 · 5x combo")
- *  emoji     — big mood emoji on the card
+ *  emoji     — mood emoji shown beside the headline
  *  footer    — chip text at the bottom (e.g. "Beat my score!")
  */
 export default function ShareStories({
+  variant = 'score',
   headline,
   big,
   bigLabel,
@@ -34,6 +41,15 @@ export default function ShareStories({
 
   async function buildBlob() {
     const el = cardRef.current;
+    // The card leans on Bangers + same-origin art; make sure both are actually
+    // loaded before the capture or html2canvas paints fallback fonts / blanks.
+    await document.fonts.ready;
+    await Promise.all([
+      document.fonts.load(`400 16px Bangers`).catch(() => {}),
+      ...Array.from(el.querySelectorAll('img')).map((img) =>
+        img.decode ? img.decode().catch(() => {}) : Promise.resolve()
+      ),
+    ]);
     const canvas = await html2canvas(el, {
       useCORS: true,
       backgroundColor: '#0b0b0d',
@@ -42,6 +58,17 @@ export default function ShareStories({
     return await new Promise((res, rej) =>
       canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png')
     );
+  }
+
+  function saveToDevice(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'doubles_score.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function handleShare() {
@@ -62,16 +89,18 @@ export default function ShareStories({
           trackInvite?.();
           return;
         } catch (_) {
-          // user dismissed the sheet — fall through to deep link
+          // user dismissed the sheet — fall through to save + open Instagram
         }
       }
 
-      // Fallback: Instagram Stories deep link with an uploaded background
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Fallback: save the card locally, then best-effort open Instagram.
+      saveToDevice(blob);
       trackInvite?.();
-      window.location.href =
-        `instagram-stories://share?background_image_url=${encodeURIComponent(file_url)}` +
-        `&background_topcolor=b3382c&background-bottomcolor=b45309`;
+      const start = Date.now();
+      window.location.href = 'instagram://story-camera';
+      setTimeout(() => {
+        if (Date.now() - start < 2200) window.open('https://www.instagram.com', '_blank');
+      }, 2000);
     } catch (err) {
       console.error('Share failed:', err);
       alert('Sharing is not available on this device right now.');
@@ -87,14 +116,7 @@ export default function ShareStories({
     setBusy(true);
     try {
       const blob = await buildBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'doubles_score.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      saveToDevice(blob);
 
       // Best-effort open of the TikTok app; falls back to the web site.
       const start = Date.now();
@@ -118,14 +140,7 @@ export default function ShareStories({
     setBusy(true);
     try {
       const blob = await buildBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'doubles_score.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      saveToDevice(blob);
 
       const start = Date.now();
       trackInvite?.();
@@ -140,6 +155,8 @@ export default function ShareStories({
       setBusy(false);
     }
   }
+
+  const isRank = variant === 'rank';
 
   return (
     <>
@@ -181,29 +198,115 @@ export default function ShareStories({
         </button>
       </div>
 
-      {/* Offscreen share card captured by html2canvas (no external images => no CORS taint) */}
+      {/* Offscreen share card captured by html2canvas. All art is same-origin
+          (/game/*) so the canvas never taints. Two looks: 'rank' = brand
+          gradient + big logo badge; 'score' = sunset street scene. */}
       <div aria-hidden style={{ position: 'fixed', left: '-99999px', top: 0, pointerEvents: 'none' }}>
         <div
           ref={cardRef}
-          className="w-[300px] h-[534px] rounded-[28px] p-6 flex flex-col items-center justify-between text-center"
+          className="w-[300px] h-[534px] rounded-[28px] overflow-hidden relative flex flex-col items-center text-center"
           style={{
-            fontFamily: 'Nunito, ui-sans-serif, system-ui, sans-serif',
-            background: 'linear-gradient(160deg, #b3382c 0%, #d2691e 45%, #e6b94a 100%)',
+            fontFamily: NUNITO,
+            background: 'linear-gradient(165deg, #7f1d1d 0%, #b3382c 30%, #d2691e 65%, #e6b94a 100%)',
             color: '#ffffff',
           }}
         >
-          <div className="mt-1">
-            <div className="text-4xl leading-none drop-shadow">{emoji}</div>
-            <div className="font-extrabold text-xl tracking-wide drop-shadow mt-2">{GAME_NAME}</div>
-          </div>
-          <div className="my-2">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">{headline}</div>
-            <div className="text-6xl font-extrabold leading-none drop-shadow mt-2">{big}</div>
-            {bigLabel && <div className="text-sm font-bold text-white/85 mt-1">{bigLabel}</div>}
-          </div>
-          {subline && <div className="text-xs font-bold text-white/85 px-4 leading-snug">{subline}</div>}
-          <div className="mb-1 mt-3 px-4 py-1.5 bg-black/30 rounded-full text-[11px] font-extrabold uppercase tracking-wide">
-            {footer}
+          {/* Score variant: full-bleed street scene under a legibility gradient */}
+          {!isRank && (
+            <>
+              <img
+                src={SCENE_URL}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                style={{ background: 'linear-gradient(180deg, rgba(10,6,4,0.55) 0%, rgba(10,6,4,0.15) 38%, rgba(10,6,4,0.35) 62%, rgba(10,6,4,0.78) 100%)' }}
+              />
+            </>
+          )}
+
+          <div className="relative flex flex-col items-center justify-between h-full w-full p-5">
+            {/* Header: logo badge + wordmark */}
+            <div className="flex flex-col items-center">
+              <div
+                className="rounded-full overflow-hidden"
+                style={{
+                  width: isRank ? 128 : 84,
+                  height: isRank ? 128 : 84,
+                  border: '3px solid #fbbf24',
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
+                }}
+              >
+                <img src={LOGO_URL} alt={GAME_NAME} className="w-full h-full object-cover" />
+              </div>
+              <div
+                className="mt-2 leading-none"
+                style={{
+                  fontFamily: BANGERS,
+                  fontSize: 30,
+                  letterSpacing: '0.06em',
+                  textShadow: '2px 2px 0 rgba(0,0,0,0.55)',
+                }}
+              >
+                {GAME_NAME.toUpperCase()}
+              </div>
+            </div>
+
+            {/* Body: headline + big number */}
+            <div className="flex flex-col items-center">
+              <div
+                className="uppercase font-extrabold"
+                style={{ fontSize: 12, letterSpacing: '0.22em', color: '#fde68a', textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}
+              >
+                {emoji} {headline} {emoji}
+              </div>
+              <div
+                className="leading-none mt-2"
+                style={{
+                  fontFamily: BANGERS,
+                  fontSize: isRank ? 96 : 72,
+                  color: '#fbbf24',
+                  textShadow: '4px 4px 0 rgba(0,0,0,0.55)',
+                }}
+              >
+                {big}
+              </div>
+              {bigLabel && (
+                <div className="font-extrabold mt-1" style={{ fontSize: 15, textShadow: '1px 1px 0 rgba(0,0,0,0.5)' }}>
+                  {bigLabel}
+                </div>
+              )}
+              {subline && (
+                <div
+                  className="font-bold mt-3 px-3 py-1.5 rounded-full"
+                  style={{ fontSize: 12, background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(251,191,36,0.5)' }}
+                >
+                  {subline}
+                </div>
+              )}
+            </div>
+
+            {/* Footer: challenge chip + handle */}
+            <div className="flex flex-col items-center">
+              <div
+                className="px-5 py-2 rounded-full"
+                style={{
+                  fontFamily: BANGERS,
+                  fontSize: 17,
+                  letterSpacing: '0.05em',
+                  background: 'rgba(0,0,0,0.45)',
+                  border: '2px solid #fbbf24',
+                  color: '#fde68a',
+                  textShadow: '1px 1px 0 rgba(0,0,0,0.6)',
+                }}
+              >
+                {footer}
+              </div>
+              <div className="mt-2 font-bold" style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>
+                🇹🇹 thedoublesman.com 🇬🇾
+              </div>
+            </div>
           </div>
         </div>
       </div>
