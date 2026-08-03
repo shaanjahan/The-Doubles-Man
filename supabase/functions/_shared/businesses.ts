@@ -22,7 +22,7 @@ export const BUSINESS_UNITS: BusinessUnit[] = [
 // Per-collection ceiling = this fraction of the fleet's invested value (the
 // same businessNetValue the Empire Value leaderboard ranks). One number drives
 // both: buying a business visibly raises your board standing AND your MAX.
-export const IDLE_CAP_PCT = 0.10;
+export const IDLE_CAP_PCT = 0.01;
 
 // Offline accrual is capped so an idle player can't stockpile unbounded income.
 export const MAX_IDLE_MINUTES = 4 * 60;
@@ -41,7 +41,7 @@ export function getUnit(tier: number): BusinessUnit | undefined {
 
 // Per-collection ceiling = IDLE_CAP_PCT of the fleet's invested value (the
 // exact businessNetValue the Empire Value board ranks) — "your stalls hold up
-// to 10% of your empire's value". Every purchase raises the ceiling in direct
+// to 1% of your empire's value". Every purchase raises the ceiling in direct
 // proportion to what it cost, so board rank and storage grow together. The old
 // tier cap survives as a floor via max(): new players (one 300-coin Bike would
 // otherwise cap at 30) keep the 2,000+ floor, and no existing player's ceiling

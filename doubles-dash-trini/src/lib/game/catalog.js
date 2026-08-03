@@ -46,9 +46,9 @@ export function idleCapForTier(businessTier) {
 
 // Per-collection ceiling = IDLE_CAP_PCT of the fleet's invested value (the
 // exact businessNetValue the Empire Value board ranks) — "your stalls hold up
-// to 10% of your empire's value". Old tier cap stays as a floor so new players
+// to 1% of your empire's value". Old tier cap stays as a floor so new players
 // keep 2,000+ and nobody's ceiling ever decreases. Mirror of _shared/businesses.ts.
-export const IDLE_CAP_PCT = 0.10;
+export const IDLE_CAP_PCT = 0.01;
 
 export function businessNetValue(businesses = []) {
   let total = 0;
