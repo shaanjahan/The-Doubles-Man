@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
-import { ACHIEVEMENTS, tierByIndex } from '@/lib/game/catalog';
+import { ACHIEVEMENTS, ACH_TIER_META, tierByIndex } from '@/lib/game/catalog';
 import { CHARACTERS } from '@/lib/game/characters';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Image } from '@/components/ui/image';
@@ -79,16 +79,28 @@ export default function ProfileSection() {
       </div>
 
       <div>
-        <h3 className="font-heading text-yellow-300 mb-2 text-lg">Achievements</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-heading text-yellow-300 text-lg">Achievements</h3>
+          <span className="font-heading text-sm text-yellow-300 bg-black/25 rounded-full px-2.5 py-0.5">
+            {ACHIEVEMENTS.filter((a) => player.achievementProgress[a.id]?.claimed).length} / {ACHIEVEMENTS.length}
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {ACHIEVEMENTS.map((a) => {
             const prog = player.achievementProgress[a.id] || { value: 0, claimed: false };
             const earned = prog.claimed;
             const pct = Math.min(100, (prog.value / a.target) * 100);
+            const tier = ACH_TIER_META[a.tier];
             return (
               <div key={a.id} className={`rounded-2xl p-2 border text-center transition bg-tropic-coral border-red-700 ${earned ? 'ring-2 ring-yellow-300' : ''}`}>
-                <div className="font-heading text-lg text-yellow-300 leading-none">{a.name}</div>
+                <div className="font-heading text-lg text-yellow-300 leading-none">{a.emoji} {a.name}</div>
                 <div className="text-[10px] text-yellow-100/90 leading-tight mt-0.5">{a.description}</div>
+                {tier && (
+                  <span className={`inline-block text-[9px] font-extrabold border rounded-full px-1.5 mt-1 ${tier.badge}`}>{tier.label}</span>
+                )}
+                <div className="text-[10px] text-yellow-200 font-bold mt-0.5">
+                  💵 {(a.reward.coins || 0).toLocaleString()} · 💎 {a.reward.gems || 0}
+                </div>
                 {earned ? (
                   <div className="text-[10px] text-yellow-200 font-bold mt-0.5">Unlocked ✓</div>
                 ) : (

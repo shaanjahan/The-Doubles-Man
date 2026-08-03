@@ -163,20 +163,87 @@ export function upgradeCost(upg, currentLevel) {
   return Math.floor(upg.baseCost * Math.pow(upg.growth, currentLevel));
 }
 
-export const ACHIEVEMENTS = [
-  { id: 'serve_100',       emoji: '🛎️', name: 'Hustler',         description: 'Serve 100 customers',         target: 100,      stat: 'customersServed', reward: { coins: 500 } },
-  { id: 'serve_1000',      emoji: '🏆', name: 'Vendor Legend',   description: 'Serve 1,000 customers',        target: 1000,     stat: 'customersServed', reward: { gems: 25 } },
-  { id: 'perfect_50',      emoji: '✨', name: 'Perfectionist',  description: '50 perfect orders',           target: 50,       stat: 'perfectOrders',   reward: { coins: 300 } },
-  { id: 'perfect_250',     emoji: '🌟', name: 'Flawless Hands', description: '250 perfect orders',          target: 250,      stat: 'perfectOrders',   reward: { gems: 20 } },
-  { id: 'combo_20',        emoji: '🔥', name: 'Combo King',      description: 'Combo streak of 20',           target: 20,       stat: 'highestCombo',    reward: { gems: 10 } },
-  { id: 'combo_50',        emoji: '🌋', name: 'Lava Fingers',    description: 'Combo streak of 50',           target: 50,       stat: 'highestCombo',    reward: { gems: 30 } },
-  { id: 'level_10',        emoji: '⭐', name: 'Rising Star',    description: 'Reach Level 10',              target: 10,       stat: 'level',           reward: { coins: 800 } },
-  { id: 'level_25',        emoji: '💫', name: 'Local Celebrity', description: 'Reach Level 25',              target: 25,       stat: 'level',           reward: { gems: 25 } },
-  { id: 'coins_1m',        emoji: '💵', name: 'Millionaire',     description: 'Earn 1,000,000 lifetime dollars', target: 1000000, stat: 'lifetimeCoins',   reward: { gems: 50 } },
-  { id: 'sauce_collector', emoji: '🧂', name: 'Sauce Master',   description: 'Own 5 unique sauces',          target: 5,        stat: 'uniqueSauces',    reward: { gems: 15 } },
-  { id: 'streak_7',        emoji: '📅', name: 'Faithful Vendor', description: '7-day login streak',           target: 7,        stat: 'dailyStreak',     reward: { gems: 30 } },
-  { id: 'rounds_50',       emoji: '🎲', name: 'Dedicated',       description: 'Play 50 rounds',              target: 50,       stat: 'roundsPlayed',    reward: { coins: 600 } },
+// Every achievement pays BOTH dollars and gems, set by its difficulty tier.
+// Mirrors _shared/catalog.ts ACH_TIER_PRIZE — the server is authoritative for
+// the actual grant; this copy is display-only.
+export const ACH_TIER_PRIZE = {
+  starter:   { coins: 500,    gems: 2 },
+  easy:      { coins: 1500,   gems: 5 },
+  medium:    { coins: 5000,   gems: 10 },
+  hard:      { coins: 20000,  gems: 20 },
+  veryhard:  { coins: 75000,  gems: 40 },
+  legendary: { coins: 250000, gems: 75 },
+};
+
+export const ACH_TIER_META = {
+  starter:   { label: 'Starter',   badge: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+  easy:      { label: 'Easy',      badge: 'bg-sky-100 text-sky-700 border-sky-300' },
+  medium:    { label: 'Medium',    badge: 'bg-amber-100 text-amber-700 border-amber-300' },
+  hard:      { label: 'Hard',      badge: 'bg-orange-100 text-orange-700 border-orange-300' },
+  veryhard:  { label: 'Very Hard', badge: 'bg-red-100 text-red-700 border-red-300' },
+  legendary: { label: 'Legendary', badge: 'bg-purple-100 text-purple-700 border-purple-300' },
+};
+
+const ACH_DEFS = [
+  // -- Starter --
+  { id: 'serve_10',        emoji: '🥇', name: 'First Taste',        description: 'Serve 10 customers',              target: 10,        stat: 'customersServed', tier: 'starter' },
+  { id: 'serve_100',       emoji: '🛎️', name: 'Hustler',            description: 'Serve 100 customers',             target: 100,       stat: 'customersServed', tier: 'starter' },
+  { id: 'perfect_10',      emoji: '🤲', name: 'Clean Hands',        description: '10 perfect orders',               target: 10,        stat: 'perfectOrders',   tier: 'starter' },
+  { id: 'combo_10',        emoji: '⚡', name: 'Warm Up',            description: 'Combo streak of 10',              target: 10,        stat: 'highestCombo',    tier: 'starter' },
+  { id: 'level_5',         emoji: '🌱', name: 'Fresh Start',        description: 'Reach Level 5',                   target: 5,         stat: 'level',           tier: 'starter' },
+  { id: 'rounds_5',        emoji: '🎮', name: 'Getting Started',    description: 'Play 5 rounds',                   target: 5,         stat: 'roundsPlayed',    tier: 'starter' },
+  { id: 'streak_3',        emoji: '📆', name: 'Regular Visitor',    description: '3-day login streak',              target: 3,         stat: 'dailyStreak',     tier: 'starter' },
+  { id: 'biz_1',           emoji: '🏪', name: 'Side Hustle',        description: 'Own your first business',         target: 1,         stat: 'businessesOwned', tier: 'starter' },
+  { id: 'upgrade_1',       emoji: '🔧', name: 'Better Tools',       description: 'Buy your first upgrade',          target: 1,         stat: 'upgradesOwned',   tier: 'starter' },
+  // -- Easy --
+  { id: 'serve_500',       emoji: '🧾', name: 'Street Regular',     description: 'Serve 500 customers',             target: 500,       stat: 'customersServed', tier: 'easy' },
+  { id: 'perfect_50',      emoji: '✨', name: 'Perfectionist',      description: '50 perfect orders',               target: 50,        stat: 'perfectOrders',   tier: 'easy' },
+  { id: 'combo_20',        emoji: '🔥', name: 'Combo King',         description: 'Combo streak of 20',              target: 20,        stat: 'highestCombo',    tier: 'easy' },
+  { id: 'level_10',        emoji: '⭐', name: 'Rising Star',        description: 'Reach Level 10',                  target: 10,        stat: 'level',           tier: 'easy' },
+  { id: 'coins_10k',       emoji: '💰', name: 'First Stash',        description: 'Earn 10,000 lifetime dollars',    target: 10000,     stat: 'lifetimeCoins',   tier: 'easy' },
+  { id: 'rounds_50',       emoji: '🎲', name: 'Dedicated',          description: 'Play 50 rounds',                  target: 50,        stat: 'roundsPlayed',    tier: 'easy' },
+  { id: 'streak_7',        emoji: '📅', name: 'Faithful Vendor',    description: '7-day login streak',              target: 7,         stat: 'dailyStreak',     tier: 'easy' },
+  { id: 'sauce_3',         emoji: '🥫', name: 'Sauce Starter',      description: 'Own 3 unique sauces',             target: 3,         stat: 'uniqueSauces',    tier: 'easy' },
+  { id: 'upgrade_5',       emoji: '🛠️', name: 'Fully Equipped',     description: 'Own 5 different upgrades',        target: 5,         stat: 'upgradesOwned',   tier: 'easy' },
+  { id: 'invite_1',        emoji: '🤝', name: 'Bring a Friend',     description: 'Invite a friend',                 target: 1,         stat: 'invitedFriends',  tier: 'easy' },
+  // -- Medium --
+  { id: 'serve_1000',      emoji: '🏆', name: 'Vendor Legend',      description: 'Serve 1,000 customers',           target: 1000,      stat: 'customersServed', tier: 'medium' },
+  { id: 'perfect_250',     emoji: '🌟', name: 'Flawless Hands',     description: '250 perfect orders',              target: 250,       stat: 'perfectOrders',   tier: 'medium' },
+  { id: 'combo_50',        emoji: '🌋', name: 'Lava Fingers',       description: 'Combo streak of 50',              target: 50,        stat: 'highestCombo',    tier: 'medium' },
+  { id: 'level_25',        emoji: '💫', name: 'Local Celebrity',    description: 'Reach Level 25',                  target: 25,        stat: 'level',           tier: 'medium' },
+  { id: 'coins_100k',      emoji: '🏦', name: 'Big Saver',          description: 'Earn 100,000 lifetime dollars',   target: 100000,    stat: 'lifetimeCoins',   tier: 'medium' },
+  { id: 'rounds_150',      emoji: '🕰️', name: 'Seasoned Vendor',    description: 'Play 150 rounds',                 target: 150,       stat: 'roundsPlayed',    tier: 'medium' },
+  { id: 'streak_14',       emoji: '🗓️', name: 'Two-Week Faithful',  description: '14-day login streak',             target: 14,        stat: 'dailyStreak',     tier: 'medium' },
+  { id: 'sauce_collector', emoji: '🧂', name: 'Sauce Master',       description: 'Own 5 unique sauces',             target: 5,         stat: 'uniqueSauces',    tier: 'medium' },
+  { id: 'biz_5',           emoji: '🏘️', name: 'Small Chain',        description: 'Own 5 businesses',                target: 5,         stat: 'businessesOwned', tier: 'medium' },
+  { id: 'upgrade_max',     emoji: '🚀', name: 'Top of De Line',     description: 'Max out any upgrade',             target: 1,         stat: 'upgradeMaxed',    tier: 'medium' },
+  { id: 'invite_3',        emoji: '📣', name: 'Town Crier',         description: 'Invite 3 friends',                target: 3,         stat: 'invitedFriends',  tier: 'medium' },
+  { id: 'vip_member',      emoji: '🎩', name: 'De Big Shot',        description: 'Become a VIP member',             target: 1,         stat: 'vip',             tier: 'medium' },
+  // -- Hard --
+  { id: 'serve_2500',      emoji: '🎪', name: 'Crowd Favourite',    description: 'Serve 2,500 customers',           target: 2500,      stat: 'customersServed', tier: 'hard' },
+  { id: 'perfect_1000',    emoji: '🎯', name: 'Zero Wrong Moves',   description: '1,000 perfect orders',            target: 1000,      stat: 'perfectOrders',   tier: 'hard' },
+  { id: 'combo_100',       emoji: '🌪️', name: 'Hurricane Hands',    description: 'Combo streak of 100',             target: 100,       stat: 'highestCombo',    tier: 'hard' },
+  { id: 'level_50',        emoji: '🎓', name: 'Top of De Class',    description: 'Reach Level 50',                  target: 50,        stat: 'level',           tier: 'hard' },
+  { id: 'coins_1m',        emoji: '💵', name: 'Millionaire',        description: 'Earn 1,000,000 lifetime dollars', target: 1000000,   stat: 'lifetimeCoins',   tier: 'hard' },
+  { id: 'rounds_300',      emoji: '🔁', name: 'De Grinder',         description: 'Play 300 rounds',                 target: 300,       stat: 'roundsPlayed',    tier: 'hard' },
+  { id: 'streak_30',       emoji: '🌙', name: 'Month-Long Devotion', description: '30-day login streak',            target: 30,        stat: 'dailyStreak',     tier: 'hard' },
+  { id: 'sauce_8',         emoji: '🌶️', name: 'Full Pantry',        description: 'Own all 8 magic sauces',          target: 8,         stat: 'uniqueSauces',    tier: 'hard' },
+  { id: 'biz_10',          emoji: '🏙️', name: 'Business District',  description: 'Own 10 businesses',               target: 10,        stat: 'businessesOwned', tier: 'hard' },
+  { id: 'empire_1',        emoji: '🏰', name: 'Empire Builder',     description: 'Own a Doubles Monarch',           target: 1,         stat: 'empireUnits',     tier: 'hard' },
+  // -- Very Hard --
+  { id: 'serve_5000',      emoji: '🏛️', name: 'Doubles Institution', description: 'Serve 5,000 customers',          target: 5000,      stat: 'customersServed', tier: 'veryhard' },
+  { id: 'combo_250',       emoji: '☄️', name: 'Comet Streak',       description: 'Combo streak of 250',             target: 250,       stat: 'highestCombo',    tier: 'veryhard' },
+  { id: 'coins_10m',       emoji: '🤑', name: 'Money Boss',         description: 'Earn 10,000,000 lifetime dollars', target: 10000000,  stat: 'lifetimeCoins',   tier: 'veryhard' },
+  { id: 'rounds_500',      emoji: '🏋️', name: 'Iron Vendor',        description: 'Play 500 rounds',                 target: 500,       stat: 'roundsPlayed',    tier: 'veryhard' },
+  { id: 'legacy_1',        emoji: '📜', name: 'Start De Legacy',    description: 'Buy Doubles Legacy Level 1',      target: 1,         stat: 'legacyLevel',     tier: 'veryhard' },
+  // -- Legendary --
+  { id: 'serve_10000',     emoji: '👑', name: 'National Treasure',  description: 'Serve 10,000 customers',          target: 10000,     stat: 'customersServed', tier: 'legendary' },
+  { id: 'combo_500',       emoji: '🐉', name: 'Untouchable',        description: 'Combo streak of 500',             target: 500,       stat: 'highestCombo',    tier: 'legendary' },
+  { id: 'coins_100m',      emoji: '🐋', name: 'Doubles Tycoon',     description: 'Earn 100,000,000 lifetime dollars', target: 100000000, stat: 'lifetimeCoins',   tier: 'legendary' },
+  { id: 'legacy_5',        emoji: '🏺', name: 'Living Legacy',      description: 'Doubles Legacy Level 5',          target: 5,         stat: 'legacyLevel',     tier: 'legendary' },
 ];
+
+export const ACHIEVEMENTS = ACH_DEFS.map((d) => ({ ...d, reward: ACH_TIER_PRIZE[d.tier] }));
 
 export const DAILY_MISSION_POOL = [
   { id: 'dm_serve_15',   desc: 'Serve 15 customers',      target: 15,  stat: 'servedToday',     reward: { coins: 100, xp: 50 } },

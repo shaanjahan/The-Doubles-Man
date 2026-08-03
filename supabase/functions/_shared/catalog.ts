@@ -65,27 +65,91 @@ export const DAILY_REWARDS: DailyReward[] = [
 
 // ---- Achievements ----
 // Mirrors catalog.js ACHIEVEMENTS. `stat` names match the camelCase snapshot
-// keys used by evaluateAchievements below.
+// keys used by evaluateAchievements below. Every achievement pays BOTH dollars
+// and gems; the amounts come from its difficulty tier so prizes stay
+// consistent as the catalog grows. 50 achievements total.
+export type AchTier = 'starter' | 'easy' | 'medium' | 'hard' | 'veryhard' | 'legendary';
+
+export const ACH_TIER_PRIZE: Record<AchTier, { coins: number; gems: number }> = {
+  starter:   { coins: 500,    gems: 2 },
+  easy:      { coins: 1500,   gems: 5 },
+  medium:    { coins: 5000,   gems: 10 },
+  hard:      { coins: 20000,  gems: 20 },
+  veryhard:  { coins: 75000,  gems: 40 },
+  legendary: { coins: 250000, gems: 75 },
+};
+
 export interface Achievement {
   id: string;
   target: number;
   stat: string;
-  reward: { coins?: number; gems?: number };
+  tier: AchTier;
+  reward: { coins: number; gems: number };
 }
-export const ACHIEVEMENTS: Achievement[] = [
-  { id: 'serve_100',       target: 100,     stat: 'customersServed', reward: { coins: 500 } },
-  { id: 'serve_1000',      target: 1000,    stat: 'customersServed', reward: { gems: 25 } },
-  { id: 'perfect_50',      target: 50,      stat: 'perfectOrders',   reward: { coins: 300 } },
-  { id: 'perfect_250',     target: 250,     stat: 'perfectOrders',   reward: { gems: 20 } },
-  { id: 'combo_20',        target: 20,      stat: 'highestCombo',    reward: { gems: 10 } },
-  { id: 'combo_50',        target: 50,      stat: 'highestCombo',    reward: { gems: 30 } },
-  { id: 'level_10',        target: 10,      stat: 'level',           reward: { coins: 800 } },
-  { id: 'level_25',        target: 25,      stat: 'level',           reward: { gems: 25 } },
-  { id: 'coins_1m',        target: 1000000, stat: 'lifetimeCoins',   reward: { gems: 50 } },
-  { id: 'sauce_collector', target: 5,       stat: 'uniqueSauces',    reward: { gems: 15 } },
-  { id: 'streak_7',        target: 7,       stat: 'dailyStreak',     reward: { gems: 30 } },
-  { id: 'rounds_50',       target: 50,      stat: 'roundsPlayed',    reward: { coins: 600 } },
+
+const ACH_DEFS: { id: string; target: number; stat: string; tier: AchTier }[] = [
+  // -- Starter --
+  { id: 'serve_10',        target: 10,        stat: 'customersServed', tier: 'starter' },
+  { id: 'serve_100',       target: 100,       stat: 'customersServed', tier: 'starter' },
+  { id: 'perfect_10',      target: 10,        stat: 'perfectOrders',   tier: 'starter' },
+  { id: 'combo_10',        target: 10,        stat: 'highestCombo',    tier: 'starter' },
+  { id: 'level_5',         target: 5,         stat: 'level',           tier: 'starter' },
+  { id: 'rounds_5',        target: 5,         stat: 'roundsPlayed',    tier: 'starter' },
+  { id: 'streak_3',        target: 3,         stat: 'dailyStreak',     tier: 'starter' },
+  { id: 'biz_1',           target: 1,         stat: 'businessesOwned', tier: 'starter' },
+  { id: 'upgrade_1',       target: 1,         stat: 'upgradesOwned',   tier: 'starter' },
+  // -- Easy --
+  { id: 'serve_500',       target: 500,       stat: 'customersServed', tier: 'easy' },
+  { id: 'perfect_50',      target: 50,        stat: 'perfectOrders',   tier: 'easy' },
+  { id: 'combo_20',        target: 20,        stat: 'highestCombo',    tier: 'easy' },
+  { id: 'level_10',        target: 10,        stat: 'level',           tier: 'easy' },
+  { id: 'coins_10k',       target: 10000,     stat: 'lifetimeCoins',   tier: 'easy' },
+  { id: 'rounds_50',       target: 50,        stat: 'roundsPlayed',    tier: 'easy' },
+  { id: 'streak_7',        target: 7,         stat: 'dailyStreak',     tier: 'easy' },
+  { id: 'sauce_3',         target: 3,         stat: 'uniqueSauces',    tier: 'easy' },
+  { id: 'upgrade_5',       target: 5,         stat: 'upgradesOwned',   tier: 'easy' },
+  { id: 'invite_1',        target: 1,         stat: 'invitedFriends',  tier: 'easy' },
+  // -- Medium --
+  { id: 'serve_1000',      target: 1000,      stat: 'customersServed', tier: 'medium' },
+  { id: 'perfect_250',     target: 250,       stat: 'perfectOrders',   tier: 'medium' },
+  { id: 'combo_50',        target: 50,        stat: 'highestCombo',    tier: 'medium' },
+  { id: 'level_25',        target: 25,        stat: 'level',           tier: 'medium' },
+  { id: 'coins_100k',      target: 100000,    stat: 'lifetimeCoins',   tier: 'medium' },
+  { id: 'rounds_150',      target: 150,       stat: 'roundsPlayed',    tier: 'medium' },
+  { id: 'streak_14',       target: 14,        stat: 'dailyStreak',     tier: 'medium' },
+  { id: 'sauce_collector', target: 5,         stat: 'uniqueSauces',    tier: 'medium' },
+  { id: 'biz_5',           target: 5,         stat: 'businessesOwned', tier: 'medium' },
+  { id: 'upgrade_max',     target: 1,         stat: 'upgradeMaxed',    tier: 'medium' },
+  { id: 'invite_3',        target: 3,         stat: 'invitedFriends',  tier: 'medium' },
+  { id: 'vip_member',      target: 1,         stat: 'vip',             tier: 'medium' },
+  // -- Hard --
+  { id: 'serve_2500',      target: 2500,      stat: 'customersServed', tier: 'hard' },
+  { id: 'perfect_1000',    target: 1000,      stat: 'perfectOrders',   tier: 'hard' },
+  { id: 'combo_100',       target: 100,       stat: 'highestCombo',    tier: 'hard' },
+  { id: 'level_50',        target: 50,        stat: 'level',           tier: 'hard' },
+  { id: 'coins_1m',        target: 1000000,   stat: 'lifetimeCoins',   tier: 'hard' },
+  { id: 'rounds_300',      target: 300,       stat: 'roundsPlayed',    tier: 'hard' },
+  { id: 'streak_30',       target: 30,        stat: 'dailyStreak',     tier: 'hard' },
+  { id: 'sauce_8',         target: 8,         stat: 'uniqueSauces',    tier: 'hard' },
+  { id: 'biz_10',          target: 10,        stat: 'businessesOwned', tier: 'hard' },
+  { id: 'empire_1',        target: 1,         stat: 'empireUnits',     tier: 'hard' },
+  // -- Very Hard --
+  { id: 'serve_5000',      target: 5000,      stat: 'customersServed', tier: 'veryhard' },
+  { id: 'combo_250',       target: 250,       stat: 'highestCombo',    tier: 'veryhard' },
+  { id: 'coins_10m',       target: 10000000,  stat: 'lifetimeCoins',   tier: 'veryhard' },
+  { id: 'rounds_500',      target: 500,       stat: 'roundsPlayed',    tier: 'veryhard' },
+  { id: 'legacy_1',        target: 1,         stat: 'legacyLevel',     tier: 'veryhard' },
+  // -- Legendary --
+  { id: 'serve_10000',     target: 10000,     stat: 'customersServed', tier: 'legendary' },
+  { id: 'combo_500',       target: 500,       stat: 'highestCombo',    tier: 'legendary' },
+  { id: 'coins_100m',      target: 100000000, stat: 'lifetimeCoins',   tier: 'legendary' },
+  { id: 'legacy_5',        target: 5,         stat: 'legacyLevel',     tier: 'legendary' },
 ];
+
+export const ACHIEVEMENTS: Achievement[] = ACH_DEFS.map((d) => ({
+  ...d,
+  reward: ACH_TIER_PRIZE[d.tier],
+}));
 
 export interface AchievementResult {
   grants: { id: string; coins: number; gems: number }[];  // newly-unlocked, for the RPC to grant idempotently
@@ -103,6 +167,8 @@ export function evaluateAchievements(
   stats: Record<string, any>,
 ): AchievementResult {
   const uniqueSauces = (player.magicSauces || []).filter((s: any) => (s?.count || 0) > 0).length;
+  const businesses: any[] = Array.isArray(player.businesses) ? player.businesses : [];
+  const upgrades: Record<string, number> = player.upgrades || {};
   const snapshot: Record<string, number> = {
     customersServed: stats.customersServed || 0,
     perfectOrders: stats.perfectOrders || 0,
@@ -112,6 +178,13 @@ export function evaluateAchievements(
     uniqueSauces,
     dailyStreak: player.dailyStreak || 0,
     roundsPlayed: stats.roundsPlayed || 0,
+    businessesOwned: businesses.reduce((n, b) => n + (b?.count || 0), 0),
+    empireUnits: businesses.filter((b) => b?.tier === 6).reduce((n, b) => n + (b?.count || 0), 0),
+    upgradesOwned: UPGRADES.filter((u) => (upgrades[u.id] || 0) >= 1).length,
+    upgradeMaxed: UPGRADES.some((u) => (upgrades[u.id] || 0) >= u.maxLevel) ? 1 : 0,
+    legacyLevel: upgrades.legacy || 0,
+    invitedFriends: stats.invitedFriends || 0,
+    vip: player.vip ? 1 : 0,
   };
   const progress = player.achievementProgress || {};
   const grants: { id: string; coins: number; gems: number }[] = [];
