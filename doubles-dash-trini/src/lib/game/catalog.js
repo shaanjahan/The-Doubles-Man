@@ -31,7 +31,7 @@ export const BUSINESS_TIERS = [
 // Idle "My Business" — owned businesses earn dollars over real time (capped at
 // 8h) and add a small per-round bonus when a service round ends. Numbers must
 // stay in sync with base44/shared/businesses.ts.
-export const MAX_IDLE_MINUTES = 4 * 60;
+export const MAX_IDLE_MINUTES = 24 * 60;
 
 // Per-collection idle ceiling scales with the vendor's HIGHEST business rank
 // (player.businessTier) — Doubles Bike rank → 2,000, Doubles Stand → 3,500,
@@ -46,9 +46,9 @@ export function idleCapForTier(businessTier) {
 
 // Per-collection ceiling = IDLE_CAP_PCT of the fleet's invested value (the
 // exact businessNetValue the Empire Value board ranks) — "your stalls hold up
-// to 1% of your empire's value". Old tier cap stays as a floor so new players
+// to 5% of your empire's value". Old tier cap stays as a floor so new players
 // keep 2,000+ and nobody's ceiling ever decreases. Mirror of _shared/businesses.ts.
-export const IDLE_CAP_PCT = 0.01;
+export const IDLE_CAP_PCT = 0.05;
 
 export function businessNetValue(businesses = []) {
   let total = 0;

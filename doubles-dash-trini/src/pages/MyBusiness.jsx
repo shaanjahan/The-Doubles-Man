@@ -69,7 +69,7 @@ export default function MyBusiness() {
         <h1 className="text-3xl font-extrabold text-tropic-coral tracking-wide">My Business</h1>
       </div>
       <p className="text-xs text-white/60">
-        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — your stalls store up to 1% of your empire's value per collection, income accrues up to 4h while you're away, and each adds a bonus every round you play.
+        Own doubles bikes, stands, roti shops and more. They earn idle dollars over time — your stalls store up to 5% of your empire's value per collection, income accrues up to 24 hours while you're away, and each adds a bonus every round you play.
       </p>
 
       {/* Collect bar */}
@@ -137,7 +137,7 @@ export default function MyBusiness() {
                   {owned > 0 && <span className="text-[10px] font-bold px-1.5 rounded-full bg-tropic-sea text-white">×{owned}</span>}
                 </div>
                 <div className="text-[11px] text-slate-600">
-                  {unlocked ? `Each earns ${unitIncome.toLocaleString()}/min idle · +${biz.perRound} per round` : `Unlocks at Level ${UNLOCK_LEVEL[biz.id] ?? '?'}`}
+                  {unlocked ? `Each earns ${unitIncome.toLocaleString()}/min idle — up to ${(unitIncome * MAX_IDLE_MINUTES).toLocaleString()}/day · +${biz.perRound} per round` : `Unlocks at Level ${UNLOCK_LEVEL[biz.id] ?? '?'}`}
                 </div>
                 {owned > 0 && (
                   <div className="text-[10px] text-slate-500 mt-0.5">Owned income: {(unitIncome * owned).toLocaleString()}/min</div>
@@ -170,7 +170,7 @@ export default function MyBusiness() {
       </section>
 
       <div className="text-[11px] text-white/50 text-center pt-1">
-        Costs rise as you buy more — your stalls store up to 1% of your empire's value (currently {idleCap.toLocaleString()} dollars max). Idle income accrues up to 4h.
+        Costs rise as you buy more — your stalls store up to 5% of your empire's value (currently {idleCap.toLocaleString()} dollars max). Idle income accrues up to 24 hours.
       </div>
     </div>
   );
