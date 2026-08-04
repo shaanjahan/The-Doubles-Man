@@ -214,10 +214,10 @@ export const SAUCE_PACK_SIZE = 3;
 // Direct-buy sauce prices in gems, by rarity (cheapest -> most expensive).
 // Server-authoritative: buy-sauce ignores any client-supplied price.
 export const SAUCE_PRICES: Record<string, number> = {
-  Common: 5,
-  Rare: 15,
-  Epic: 30,
-  Legendary: 75,
+  Common: 25,
+  Rare: 45,
+  Epic: 75,
+  Legendary: 125,
 };
 
 export const MAGIC_SAUCES: { id: string; rarity: string }[] = [

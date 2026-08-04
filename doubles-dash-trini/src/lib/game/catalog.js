@@ -137,7 +137,7 @@ export const MAGIC_SAUCES = [
 
 // Direct-buy sauce prices in gems, by rarity (cheapest -> most expensive).
 // Mirror of _shared/catalog.ts SAUCE_PRICES — the server is authoritative.
-export const SAUCE_PRICES = { Common: 5, Rare: 15, Epic: 30, Legendary: 75 };
+export const SAUCE_PRICES = { Common: 25, Rare: 45, Epic: 75, Legendary: 125 };
 export const RARITY_ORDER = ['Common', 'Rare', 'Epic', 'Legendary'];
 
 export const RARITY_STYLE = {
