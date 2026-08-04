@@ -2,14 +2,16 @@
 // dropdown reads as a clean bottom sheet on WebView/iOS rather than a system
 // select that ignores the app's theme.
 import React from 'react';
-import { MapPin, Check, ChevronDown } from 'lucide-react';
+import { MapPin, Check, ChevronDown, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CoinIcon from '@/components/CoinIcon';
 import { LocationIcon } from '@/components/game/art/icons';
+import { locationUnlockLevel } from '@/lib/game/catalog';
 
-export default function LocationPicker({ locations, value, onChange }) {
+export default function LocationPicker({ locations, value, onChange, businessTier = 0 }) {
   const [open, setOpen] = React.useState(false);
-  const current = locations.find((l) => l.id === value) || locations[0];
+  const unlocked = locations.filter((l) => (l.unlockTier || 0) <= businessTier);
+  const current = unlocked.find((l) => l.id === value) || unlocked[0] || locations[0];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -33,25 +35,35 @@ export default function LocationPicker({ locations, value, onChange }) {
         <div className="max-h-[60vh] overflow-y-auto p-2 space-y-1.5">
           {locations.map((l) => {
             const active = l.id === value;
+            const locked = (l.unlockTier || 0) > businessTier;
             return (
               <button
                 key={l.id}
-                onClick={() => { onChange(l.id); setOpen(false); }}
+                disabled={locked}
+                onClick={() => { if (!locked) { onChange(l.id); setOpen(false); } }}
                 className={`w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
-                  active ? 'bg-tropic-magenta text-white' : 'bg-white/10 text-zinc-100 hover:bg-white/20 border border-white/10'
+                  locked
+                    ? 'bg-white/5 text-zinc-500 border border-white/5 cursor-not-allowed'
+                    : active
+                    ? 'bg-tropic-magenta text-white'
+                    : 'bg-white/10 text-zinc-100 hover:bg-white/20 border border-white/10'
                 }`}
               >
-                <LocationIcon id={l.id} size={26} />
+                <span className={locked ? 'opacity-40 grayscale' : ''}><LocationIcon id={l.id} size={26} /></span>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold truncate flex items-center gap-1">
                     <MapPin size={12} /> {l.name}
                   </div>
-                  <div className={`text-xs ${active ? 'text-white/80' : 'text-muted-foreground'}`}>
-                    Base {l.baseReward}{' '}
-                    <CoinIcon className="w-3 h-3 inline-block align-middle" /> · ~{l.arriveSec}s
-                  </div>
+                  {locked ? (
+                    <div className="text-xs text-zinc-500">Unlocks at Level {locationUnlockLevel(l)}</div>
+                  ) : (
+                    <div className={`text-xs ${active ? 'text-white/80' : 'text-muted-foreground'}`}>
+                      Base {l.baseReward}{' '}
+                      <CoinIcon className="w-3 h-3 inline-block align-middle" /> · ~{l.arriveSec}s
+                    </div>
+                  )}
                 </div>
-                {active && <Check size={18} />}
+                {locked ? <Lock size={16} className="shrink-0" /> : active && <Check size={18} />}
               </button>
             );
           })}

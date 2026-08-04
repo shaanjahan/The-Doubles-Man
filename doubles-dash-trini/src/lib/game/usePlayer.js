@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import {
-  ACHIEVEMENTS, DAILY_MISSION_POOL, WEEKLY_MISSION_POOL, MONTHLY_MISSION_POOL,
+  ACHIEVEMENTS, LOCATIONS, DAILY_MISSION_POOL, WEEKLY_MISSION_POOL, MONTHLY_MISSION_POOL,
 } from './catalog';
 import { characterUrlByGender } from './characters';
 
@@ -177,6 +177,19 @@ export function usePlayer() {
   const applyServerPlayer = useCallback((p) => {
     if (!p) return null;
     const next = ensureDefaults(p);
+    // Rank-up location unlocks: compare against the previous in-memory player
+    // (never fires on first load — prev is null then) and surface any location
+    // whose tier gate was just crossed for the unlock toast.
+    const prev = playerRef.current;
+    if (
+      prev && typeof prev.businessTier === 'number' &&
+      typeof next.businessTier === 'number' && next.businessTier > prev.businessTier
+    ) {
+      const newly = LOCATIONS.filter(
+        (l) => (l.unlockTier || 0) > prev.businessTier && (l.unlockTier || 0) <= next.businessTier
+      );
+      if (newly.length) setUnlockedLocations(newly);
+    }
     playerRef.current = next;
     setPlayer(next);
     return next;
@@ -200,6 +213,7 @@ export function usePlayer() {
 
   // Convenience: also expose recently unlocked achievements (last save)
   const [newlyUnlocked, setNewlyUnlocked] = useState([]);
+  const [unlockedLocations, setUnlockedLocations] = useState([]);
 
   // finalizeRound(outcome) — send the round's verifiable counters to the
   // `finalize-round` backend function, which clamps currency/XP to a
@@ -349,6 +363,7 @@ export function usePlayer() {
   }, [applyServerPlayer]);
 
   const clearNewlyUnlocked = useCallback(() => setNewlyUnlocked([]), []);
+  const clearUnlockedLocations = useCallback(() => setUnlockedLocations([]), []);
   const setAvatar = useCallback((emoji) => {
     mutate((p) => { p.avatarEmoji = emoji; });
   }, [mutate]);
@@ -376,6 +391,7 @@ export function usePlayer() {
     toggleEquipSauce, openSaucePack, buySauce,
     setAvatar, completeSetup, completeTutorial, trackInvite,
     newlyUnlocked, clearNewlyUnlocked,
+    unlockedLocations, clearUnlockedLocations,
   };
 }
 

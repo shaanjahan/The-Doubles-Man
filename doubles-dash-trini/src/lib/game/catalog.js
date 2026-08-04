@@ -138,6 +138,15 @@ export const MAGIC_SAUCES = [
 // Direct-buy sauce prices in gems, by rarity (cheapest -> most expensive).
 // Mirror of _shared/catalog.ts SAUCE_PRICES — the server is authoritative.
 export const SAUCE_PRICES = { Common: 25, Rare: 45, Epic: 75, Legendary: 125 };
+
+// Level a vendor reaches each business tier (mirror of the server's LVL_REQS
+// in finalize-round — the server is authoritative for tier advancement).
+// Locations gate on tier, so this maps a location to its unlock level.
+export const TIER_UNLOCK_LEVELS = [1, 5, 9, 14, 19, 25, 32];
+export function locationUnlockLevel(loc) {
+  const t = Math.min(Math.max(loc?.unlockTier || 0, 0), TIER_UNLOCK_LEVELS.length - 1);
+  return TIER_UNLOCK_LEVELS[t];
+}
 export const RARITY_ORDER = ['Common', 'Rare', 'Epic', 'Legendary'];
 
 export const RARITY_STYLE = {

@@ -6,6 +6,7 @@ import {
 import { base44 } from '@/api/base44Client';
 import TopHud from './TopHud';
 import AchievementToast from './AchievementToast';
+import LocationUnlockToast from './LocationUnlockToast';
 import CharacterSetup from './CharacterSetup';
 import { PlayerProvider, usePlayerState } from '@/lib/game/PlayerContext';
 import { MusicProvider } from '@/lib/game/MusicContext';
@@ -118,6 +119,7 @@ function LayoutShell() {
       </nav>
 
       <AchievementToast />
+      <LocationUnlockToast />
     </div>
   );
 }

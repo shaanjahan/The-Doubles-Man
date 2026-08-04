@@ -221,8 +221,12 @@ export default function Play() {
     if (!player) return;
     unlockAudio();
     sfx.click();
-    const loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
-    if (loc.unlockTier > player.businessTier) return;
+    let loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
+    // Never dead-end the start button: if the saved location is somehow above
+    // the player's tier (stale data), play the always-unlocked starter spot
+    // instead — the server 403s locked locations, so this also protects the
+    // round's rewards.
+    if (loc.unlockTier > (player.businessTier || 0)) loc = LOCATIONS[0];
     savedRef.current = false;
     setPaused(false);
     setGame(startState(buildConfig(player, loc)));
