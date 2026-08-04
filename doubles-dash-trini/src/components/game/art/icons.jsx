@@ -576,6 +576,55 @@ export function GuyanaFlag({ height = 10, className = '' }) {
   );
 }
 
+export function IconMango({ size = 20, className = '' }) {
+  return (
+    <Svg size={size} className={className}>
+      <path d="M30,10 c9,2 14,10 12,19 c-2,9 -11,15 -20,13 C13,40 7,32 9,23 C11,14 21,8 30,10 Z" fill={GOLD} {...P} />
+      <path d="M31,11 c8,3 12,10 10,18 c-1,5 -4,9 -8,11 c3,-9 2,-20 -7,-29 Z" fill={ORANGE} stroke="none" />
+      <path d="M28,10 c-2,-3 -5,-5 -9,-5" fill="none" {...P} strokeWidth="2.5" />
+      <path d="M19,5 c-5,0 -9,3 -10,7 c5,1 9,-1 10,-7 Z" fill={GREEN} {...P} strokeWidth="2" />
+      <path d="M15,19 l1,2.6 2.6,1 -2.6,1 -1,2.6 -1,-2.6 -2.6,-1 2.6,-1 Z" fill="#ffffff" opacity="0.85" />
+    </Svg>
+  );
+}
+
+export function IconFireShoe({ size = 20, className = '' }) {
+  return (
+    <Svg size={size} className={className}>
+      <path d="M10,15 c-4,3 -7,9 -6,15 c3,-2 6,-6 7,-10 Z" fill={RED} stroke={S} strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9,24 c-3,2 -4,6 -3,9 c2,-1 4,-4 4,-7 Z" fill={ORANGE} stroke={S} strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M12,17 c8,2 12,6 18,8 c6,2 12,3 14,7 v4 H14 a3,3 0 0 1 -3,-3 Z" fill={RED} {...P} />
+      <path d="M11,36 h33 v2 a2,2 0 0 1 -2,2 H14 a3,3 0 0 1 -3,-3 Z" fill={CREAM} {...P} strokeWidth="2" />
+      <path d="M21,22 l3.5,4.5 M27,24 l3,4" stroke={CREAM} strokeWidth="2.2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function IconAmulet({ size = 20, className = '' }) {
+  return (
+    <Svg size={size} className={className}>
+      <circle cx="24" cy="24" r="18" fill={BLUE} {...P} />
+      <circle cx="24" cy="24" r="12" fill="#ffffff" stroke={S} strokeWidth="1.8" />
+      <circle cx="24" cy="24" r="7.5" fill={BLUEL} stroke={S} strokeWidth="1.6" />
+      <circle cx="24" cy="24" r="3.6" fill={S} />
+      <circle cx="25.6" cy="22.4" r="1.3" fill="#ffffff" />
+    </Svg>
+  );
+}
+
+// ---- Upgrade id -> drawn icon (for upgrades without painted art) ----
+export const UPGRADE_ICONS = {
+  gem_luck: IconMango,       // Lucky Mango
+  combo_master: IconFireShoe, // Fire Shoes
+  auto_bless: IconAmulet,    // Gran's Blessing
+  legacy: IconCrown,         // Doubles Legacy
+};
+
+export function UpgradeIcon({ id, size = 20, className = '' }) {
+  const C = UPGRADE_ICONS[id] || IconWrench;
+  return <C size={size} className={className} />;
+}
+
 // ---- Achievement id -> drawn badge ----
 export const ACH_ICONS = {
   serve_10: IconMedal,   serve_100: IconBell,  serve_500: IconBell,
