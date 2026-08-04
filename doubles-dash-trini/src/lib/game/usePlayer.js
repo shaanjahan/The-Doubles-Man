@@ -320,6 +320,23 @@ export function usePlayer() {
     }
   }, [applyServerPlayer]);
 
+  // Direct purchase of one specific sauce for gems (buy-sauce): the server
+  // prices it by rarity and ignores any client-supplied cost.
+  const buySauce = useCallback(async (sauceId) => {
+    try {
+      const res = await base44.functions.invoke('buy-sauce', { sauceId });
+      const data = res?.data;
+      if (data?.player) applyServerPlayer(data.player);
+      if (data?.newAchievements?.length) {
+        setNewlyUnlocked(data.newAchievements.map((id) => ACHIEVEMENTS.find((a) => a.id === id)).filter(Boolean));
+      }
+      return !data?.error;
+    } catch (e) {
+      console.error('buySauce failed:', e);
+      return false;
+    }
+  }, [applyServerPlayer]);
+
   // Count a friend invite — server-authoritative (track-invite): bumps
   // invited_friends + the "Invite 2 friends" weekly mission.
   const trackInvite = useCallback(async () => {
@@ -356,7 +373,7 @@ export function usePlayer() {
     loading, error, player,
     reload, mutate, persist, applyServerPlayer,
     finalizeRound, manageBusiness, claimDaily, buyUpgrade,
-    toggleEquipSauce, openSaucePack,
+    toggleEquipSauce, openSaucePack, buySauce,
     setAvatar, completeSetup, completeTutorial, trackInvite,
     newlyUnlocked, clearNewlyUnlocked,
   };

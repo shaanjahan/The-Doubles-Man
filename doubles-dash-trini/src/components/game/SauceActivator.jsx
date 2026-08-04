@@ -47,9 +47,12 @@ export default function SauceActivator() {
             >
               <div className="flex items-center gap-2">
                 <SauceIcon sauce={s} sizeClass="w-12 h-12" emojiClass="text-3xl" />
-                {active && (
-                  <span className="ml-auto text-[9px] font-extrabold text-emerald-300 bg-emerald-500/30 rounded-full px-2 py-0.5">ON</span>
-                )}
+                <div className="ml-auto flex flex-col items-end gap-1">
+                  <span className="text-[10px] font-extrabold text-tropic-gold bg-black/35 rounded-full px-2 py-0.5">×{s.count}</span>
+                  {active && (
+                    <span className="text-[9px] font-extrabold text-emerald-300 bg-emerald-500/30 rounded-full px-2 py-0.5">ON</span>
+                  )}
+                </div>
               </div>
               <div className="min-w-0">
                 <div className="font-extrabold text-sm text-foreground leading-tight truncate">{s.name}</div>

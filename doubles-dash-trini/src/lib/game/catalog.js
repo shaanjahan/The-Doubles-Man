@@ -135,6 +135,11 @@ export const MAGIC_SAUCES = [
   { id: 'pepper_fairy',    name: 'Pepper Fairy',       rarity: 'Common',    emoji: '🧚', image: '/game/497859aec_085533C8-7925-4ED3-9D7A-10031E8E3895.webp', effect: 'tip_boost',      description: '+30% tips from every customer.' },
 ];
 
+// Direct-buy sauce prices in gems, by rarity (cheapest -> most expensive).
+// Mirror of _shared/catalog.ts SAUCE_PRICES — the server is authoritative.
+export const SAUCE_PRICES = { Common: 5, Rare: 15, Epic: 30, Legendary: 75 };
+export const RARITY_ORDER = ['Common', 'Rare', 'Epic', 'Legendary'];
+
 export const RARITY_STYLE = {
   Common:    { text: 'text-slate-500',  border: 'border-slate-300',  bg: 'bg-slate-50',  glow: 'shadow-slate-200' },
   Rare:      { text: 'text-sky-600',    border: 'border-sky-400',    bg: 'bg-sky-50',    glow: 'shadow-sky-200' },
