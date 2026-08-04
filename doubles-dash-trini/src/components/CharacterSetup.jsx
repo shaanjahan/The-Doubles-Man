@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { Image } from '@/components/ui/image';
 import { CHARACTERS } from '@/lib/game/characters';
+import { IconChefHat } from '@/components/game/art/icons';
 
 const CHOICES = CHARACTERS;
 
@@ -51,7 +52,7 @@ export default function CharacterSetup() {
                     <Image src={c.image} alt={c.label} fittingType="fill" className="w-full h-full" />
                   </div>
                 ) : (
-                  <span className="text-5xl">{c.emoji}</span>
+                  <span className="w-24 h-24 flex items-center justify-center"><IconChefHat size={56} /></span>
                 )}
                 <span className="font-extrabold text-foreground">{c.label}</span>
               </button>

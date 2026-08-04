@@ -1,6 +1,7 @@
 import React from 'react';
 import OrderBubble from './OrderBubble';
 import { Image } from '@/components/ui/image';
+import { IconPeople, IconBolt } from '@/components/game/art/icons';
 
 export default function Customer({ customer, slotIndex, compact = false }) {
   const c = customer;
@@ -12,7 +13,7 @@ export default function Customer({ customer, slotIndex, compact = false }) {
       <OrderBubble order={c.order} compact={compact} />
       <div className={`relative w-full flex-1 min-h-0 rounded-xl overflow-hidden ring-2 ${c.challenge ? 'ring-tropic-coral' : 'ring-white/10'} ${wobble}`}>
         {c.challenge && (
-          <div className="absolute top-1 left-1 z-10 bg-tropic-coral text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow whitespace-nowrap">⚠ CHALLENGE</div>
+          <div className="absolute top-1 left-1 z-10 bg-tropic-coral text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full shadow whitespace-nowrap inline-flex items-center gap-0.5"><IconBolt size={9} /> CHALLENGE</div>
         )}
         {c.type.image ? (
           <Image
@@ -22,7 +23,7 @@ export default function Customer({ customer, slotIndex, compact = false }) {
             className="w-full h-full"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">{c.type.emoji}</div>
+          <div className="w-full h-full flex items-center justify-center"><IconPeople size="70%" /></div>
         )}
       </div>
       <div className="w-full mt-0.5 h-1.5 rounded-full bg-white/15 overflow-hidden">

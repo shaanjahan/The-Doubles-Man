@@ -2,6 +2,7 @@ import React from 'react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import CoinIcon from '@/components/CoinIcon';
 import GemIcon from '@/components/GemIcon';
+import { AchIcon } from '@/components/game/art/icons';
 
 export default function AchievementToast() {
   const { newlyUnlocked, clearNewlyUnlocked } = usePlayerState();
@@ -13,7 +14,7 @@ export default function AchievementToast() {
       className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-[92%] cursor-pointer"
     >
       <div className="bg-white shadow-2xl rounded-2xl border border-amber-300 px-4 py-3 flex items-center gap-3 animate-[slideUp_0.25s_ease-out]">
-        <div className="text-3xl">{a.emoji}</div>
+        <AchIcon id={a.id} size={36} />
         <div className="flex-1 min-w-0">
           <div className="text-[10px] uppercase tracking-wide text-amber-600 font-extrabold">
             Achievement Unlocked!

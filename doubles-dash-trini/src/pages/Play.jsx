@@ -20,6 +20,7 @@ import TrinidadMap from '@/components/game/TrinidadMap';
 import PlayControls from '@/components/game/PlayControls';
 import TutorialOverlay from '@/components/game/TutorialOverlay';
 import CoinIcon from '@/components/CoinIcon';
+import { IconXBadge } from '@/components/game/art/icons';
 
 const TICK_MS = 100;
 const MAX_MISTAKES = 3; // a round ends after this many botched/missed orders
@@ -446,8 +447,8 @@ export default function Play() {
                 </div>
               </div>
             ) : (
-              <div className="text-2xl font-extrabold text-tropic-coral drop-shadow animate-[shake-soft_0.5s_ease-in-out]">
-                ❌ Oops!
+              <div className="text-2xl font-extrabold text-tropic-coral drop-shadow animate-[shake-soft_0.5s_ease-in-out] inline-flex items-center gap-1.5">
+                <IconXBadge size={22} /> Oops!
               </div>
             )}
           </div>

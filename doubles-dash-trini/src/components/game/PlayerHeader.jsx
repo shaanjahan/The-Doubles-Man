@@ -1,13 +1,14 @@
 import React from 'react';
 import { Coins, Gem } from 'lucide-react';
+import { IconChefHat } from '@/components/game/art/icons';
 
 export default function PlayerHeader({ profile, level, xpProgress, gemsReward }) {
   return (
     <div className="px-4 pt-4 pb-2">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-11 h-11 rounded-2xl bg-tropic-sunset grid place-items-center text-2xl shadow-lg">
-            🧑‍🍳
+          <div className="w-11 h-11 rounded-2xl bg-tropic-sunset grid place-items-center shadow-lg">
+            <IconChefHat size={26} />
           </div>
           <div className="leading-tight">
             <p className="font-heading font-bold text-sm text-foreground">{profile.vendorName}</p>

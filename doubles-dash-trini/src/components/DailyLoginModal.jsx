@@ -5,6 +5,7 @@ import { DAILY_REWARDS, MAGIC_SAUCES } from '@/lib/game/catalog';
 import SauceIcon from '@/components/SauceIcon';
 import CoinIcon from '@/components/CoinIcon';
 import GemIcon from '@/components/GemIcon';
+import { IconGift } from '@/components/game/art/icons';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -64,7 +65,7 @@ export default function DailyLoginModal() {
                   }
                   return (
                     <div className="mt-1 flex justify-center items-center h-6">
-                      {r.coins ? <CoinIcon className="h-5 w-5 inline-block" /> : r.gems ? <GemIcon className="h-5 w-5 inline-block" /> : <span className="text-xl">🎁</span>}
+                      {r.coins ? <CoinIcon className="h-5 w-5 inline-block" /> : r.gems ? <GemIcon className="h-5 w-5 inline-block" /> : <IconGift size={20} />}
                     </div>
                   );
                 })()}

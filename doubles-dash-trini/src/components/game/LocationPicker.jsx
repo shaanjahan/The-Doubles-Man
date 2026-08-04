@@ -5,6 +5,7 @@ import React from 'react';
 import { MapPin, Check, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CoinIcon from '@/components/CoinIcon';
+import { LocationIcon } from '@/components/game/art/icons';
 
 export default function LocationPicker({ locations, value, onChange }) {
   const [open, setOpen] = React.useState(false);
@@ -18,7 +19,7 @@ export default function LocationPicker({ locations, value, onChange }) {
           className="mt-1 w-full bg-black/40 rounded-xl border border-white/10 py-2 px-3 text-sm font-semibold text-foreground flex items-center justify-between gap-2 active:scale-[0.99] transition"
         >
           <span className="flex items-center gap-2 min-w-0">
-            {current.id !== 0 && <span>{current.emoji}</span>}
+            <LocationIcon id={current.id} size={17} />
             <span className="truncate">{current.name}</span>
             <span className="text-tropic-gold font-bold flex items-center gap-0.5">({current.baseReward}<CoinIcon className="w-3.5 h-3.5 inline-block" />)</span>
           </span>
@@ -40,7 +41,7 @@ export default function LocationPicker({ locations, value, onChange }) {
                   active ? 'bg-tropic-magenta text-white' : 'bg-white/10 text-zinc-100 hover:bg-white/20 border border-white/10'
                 }`}
               >
-                {l.id !== 0 && <span className="text-2xl">{l.emoji}</span>}
+                <LocationIcon id={l.id} size={26} />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold truncate flex items-center gap-1">
                     <MapPin size={12} /> {l.name}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconPlate } from '@/components/game/art/icons';
 
 // The app had no error boundary, so a single render-time exception unmounted
 // the whole React tree — leaving a blank dark screen the user could not
@@ -56,7 +57,7 @@ export default class ErrorBoundary extends React.Component {
 
     return (
       <div className="min-h-screen bg-doubles-night flex flex-col items-center justify-center text-center px-6">
-        <div className="text-5xl mb-3">🌯</div>
+        <div className="mb-3 flex justify-center"><IconPlate size={56} /></div>
         <h1 className="text-2xl font-extrabold text-tropic-gold tracking-wide">
           The stall tipped over!
         </h1>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
 import { INGREDIENTS } from '@/lib/game/catalog';
+import { IconPepper, IconPlate } from '@/components/game/art/icons';
 
 // Pepper level → colored letter badge (matches the PepperSlider buttons).
 const PEPPER_BADGE = {
@@ -42,7 +43,9 @@ export default function OrderBubble({ order, compact = false }) {
           {c.image ? (
             <Image src={c.image} alt={c.label} fittingType="fit" className={`${chipImg} block`} />
           ) : (
-            <span className={`${chipText} px-1 py-0.5 ${c.onDark ? 'text-white' : ''}`}>{c.emoji}</span>
+            <span className={`${chipImg} flex items-center justify-center`}>
+              {c.id?.startsWith('pepper_') ? <IconPepper level={c.id.replace('pepper_', '')} size="88%" /> : <IconPlate size="88%" />}
+            </span>
           )}
         </span>
       ))}

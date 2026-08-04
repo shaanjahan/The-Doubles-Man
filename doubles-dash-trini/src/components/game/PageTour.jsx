@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { IconTap } from '@/components/game/art/icons';
 
 // Small pulsing "tap here" tag dropped onto the exact button a step highlights.
 export function TapBadge({ children = 'Tap here' }) {
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold text-black bg-tropic-gold rounded-full px-2 py-0.5 shadow animate-[wiggle_1.3s_ease-in-out_infinite] whitespace-nowrap">
-      👆 {children}
+    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-black bg-tropic-gold rounded-full px-2 py-0.5 shadow animate-[wiggle_1.3s_ease-in-out_infinite] whitespace-nowrap">
+      <IconTap size={12} /> {children}
     </span>
   );
 }
