@@ -1,5 +1,7 @@
 import React from 'react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
+import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
 
 export default function AchievementToast() {
   const { newlyUnlocked, clearNewlyUnlocked } = usePlayerState();
@@ -18,8 +20,10 @@ export default function AchievementToast() {
           </div>
           <div className="font-extrabold text-slate-800 text-sm truncate">{a.name}</div>
           <div className="text-xs text-slate-500 truncate">{a.description}</div>
-          <div className="text-xs font-extrabold text-amber-700 mt-0.5">
-            +💵 {(a.reward?.coins || 0).toLocaleString()} · +💎 {a.reward?.gems || 0}
+          <div className="text-xs font-extrabold text-amber-700 mt-0.5 flex items-center gap-1">
+            +<CoinIcon className="w-4 h-4 inline-block" /> {(a.reward?.coins || 0).toLocaleString()}
+            <span className="opacity-70">·</span>
+            +<GemIcon className="w-4 h-4 inline-block" /> {a.reward?.gems || 0}
           </div>
         </div>
       </div>

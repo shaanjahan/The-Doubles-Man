@@ -1,6 +1,8 @@
 import React from 'react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { ACHIEVEMENTS, ACH_TIER_META, tierByIndex } from '@/lib/game/catalog';
+import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
 import { CHARACTERS } from '@/lib/game/characters';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Image } from '@/components/ui/image';
@@ -98,8 +100,10 @@ export default function ProfileSection() {
                 {tier && (
                   <span className={`inline-block text-[9px] font-extrabold border rounded-full px-1.5 mt-1 ${tier.badge}`}>{tier.label}</span>
                 )}
-                <div className="text-[10px] text-yellow-200 font-bold mt-0.5">
-                  💵 {(a.reward.coins || 0).toLocaleString()} · 💎 {a.reward.gems || 0}
+                <div className="text-[10px] text-yellow-200 font-bold mt-0.5 flex items-center justify-center gap-1">
+                  <CoinIcon className="w-3.5 h-3.5 inline-block" /> {(a.reward.coins || 0).toLocaleString()}
+                  <span className="opacity-70">·</span>
+                  <GemIcon className="w-3.5 h-3.5 inline-block" /> {a.reward.gems || 0}
                 </div>
                 {earned ? (
                   <div className="text-[10px] text-yellow-200 font-bold mt-0.5">Unlocked ✓</div>

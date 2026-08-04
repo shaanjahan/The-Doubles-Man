@@ -20,7 +20,7 @@ export default function LocationPicker({ locations, value, onChange }) {
           <span className="flex items-center gap-2 min-w-0">
             {current.id !== 0 && <span>{current.emoji}</span>}
             <span className="truncate">{current.name}</span>
-            <span className="text-tropic-gold font-bold">({current.baseReward}🪙)</span>
+            <span className="text-tropic-gold font-bold flex items-center gap-0.5">({current.baseReward}<CoinIcon className="w-3.5 h-3.5 inline-block" />)</span>
           </span>
           <ChevronDown size={16} className="text-muted-foreground shrink-0" />
         </button>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Play as PlayIcon } from 'lucide-react';
 import { TapBadge } from './PageTour';
 import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
 
 // All page walkthroughs live here so the Hub's "How to Play" button can replay
 // any of them on demand. Each `visual` is a faithful mock of the real screen
@@ -96,8 +97,8 @@ export const HUB_TOUR_STEPS = [
     body: 'Coins and gems live in the top-right bar. You\u2019ll spend them in Upgrades and the Store.',
     visual: (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 bg-tropic-gold rounded-full px-2.5 py-1 text-sm font-bold text-black">🪙 1.2K</div>
-        <div className="flex items-center gap-1 bg-tropic-coral rounded-full px-2.5 py-1 text-sm font-bold text-black">💎 12</div>
+        <div className="flex items-center gap-1 bg-tropic-gold rounded-full px-2.5 py-1 text-sm font-bold text-black"><CoinIcon className="w-4 h-4" /> 1.2K</div>
+        <div className="flex items-center gap-1 bg-tropic-coral rounded-full px-2.5 py-1 text-sm font-bold text-black"><GemIcon className="w-4 h-4" /> 12</div>
       </div>
     ),
   },
