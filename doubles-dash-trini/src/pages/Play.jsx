@@ -198,15 +198,22 @@ export default function Play() {
     if (savedRef.current) return;
     savedRef.current = true;
     const localOut = computeOutcome(game);
-    // finalizeRound persists authoritative (server-clamped) rewards, creates
-    // the leaderboard entry, and returns the recomputed outcome for display.
+    // Show the summary IMMEDIATELY from the local outcome — the popup must
+    // never be gated on the network (a stalled cellular fetch used to leave
+    // the round frozen with no summary at all).
+    setOutcome(localOut);
+    setPhase('over');
+    // Then reconcile with the authoritative (server-clamped) outcome in the
+    // background. The crash-salvage snapshot is dropped ONLY on confirmed
+    // success — if the save failed or stalled, the snapshot stays and the
+    // next launch retries it (the server's sessionId replay guard makes the
+    // retry a no-op if the round actually did land).
     (async () => {
       const serverOut = await finalizeRound(localOut);
-      // The round saved cleanly — drop any crash-salvage snapshot so it
-      // can't be re-applied on the next launch.
-      try { localStorage.removeItem('doubles_pendingRound'); } catch {}
-      setOutcome(serverOut || localOut);
-      setPhase('over');
+      if (serverOut) {
+        try { localStorage.removeItem('doubles_pendingRound'); } catch {}
+        setOutcome(serverOut);
+      }
     })();
   }, [phase, game?.mistakes, game?.roundCapped]);
 
@@ -228,6 +235,9 @@ export default function Play() {
         xpEarned: Math.round(game.xpEarned),
         elapsedMs: game.elapsed || 0,
         challenge: !!game.challenge,
+        // Carried into the salvage finalize so the server's replay guard can
+        // dedupe if this round also finalized normally.
+        sessionId: game.sessionId || '',
       }));
     } catch {}
   }, [phase, game]);

@@ -159,6 +159,8 @@ export function usePlayer() {
       elapsedMs: pending.elapsedMs || 60000,
       // A crashed Today's Rush still consumed the attempt — salvage it too.
       challenge: !!pending.challenge,
+      // Lets the server replay-guard no-op this if the round already landed.
+      sessionId: pending.sessionId || '',
     }).then((res) => {
       const p = res?.data?.player;
       if (p) { playerRef.current = ensureDefaults(p); setPlayer(playerRef.current); }
@@ -240,9 +242,9 @@ export function usePlayer() {
       });
       const data = res?.data;
       if (data?.player) {
-        const next = ensureDefaults(data.player);
-        playerRef.current = next;
-        setPlayer(next);
+        // Through applyServerPlayer so rank-ups fire the location-unlock
+        // toast — rounds are the main path a tier ever increases on.
+        applyServerPlayer(data.player);
         // Missions AND achievements are now granted SERVER-SIDE by finalize-round
         // (the response player already reflects mission/achievement rewards and
         // the bumped/reset mission lists). Do NOT bump or evaluate them here too,
@@ -260,7 +262,7 @@ export function usePlayer() {
       console.error('finalizeRound backend failed:', e);
       return null;
     }
-  }, [mutate]);
+  }, [applyServerPlayer]);
 
   // My Business: collect idle earnings or buy a new business unit. Authoritative —
   // the server checks unlock tier, cost, and real-time accrual before mutating.
