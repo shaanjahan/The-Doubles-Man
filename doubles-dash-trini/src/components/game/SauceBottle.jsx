@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image } from '@/components/ui/image';
 import { INGREDIENTS } from '@/lib/game/catalog';
+import { IconPepper, IconSauceBottle } from '@/components/game/art/icons';
 
 // Tactile sauce pourer: hold to tilt the bottle and pour a drip stream;
 // a quick tap still commits the ingredient, so gameplay logic is unchanged.
@@ -39,7 +40,9 @@ export default function SauceBottle({ ingredientId = 'tamarind', onAdd, disabled
         {ing.image ? (
           <Image src={ing.image} alt={ing.label} fittingType="fit" className="w-12 h-12 drop-shadow" />
         ) : (
-          <span className="text-3xl leading-none">{ing.emoji}</span>
+          <span className="w-12 h-12 flex items-center justify-center">
+            {ing.id?.startsWith('pepper_') ? <IconPepper level={ing.id.replace('pepper_', '')} size={40} /> : <IconSauceBottle size={40} />}
+          </span>
         )}
         {pouring && (
           <span className="absolute left-1/2 top-[78%] -translate-x-1/2 flex flex-col items-center gap-0.5">

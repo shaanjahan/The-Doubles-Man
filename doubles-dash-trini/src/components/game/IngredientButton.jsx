@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
 import { INGREDIENTS } from '@/lib/game/catalog';
+import { IconPepper, IconPlate } from '@/components/game/art/icons';
 
 export default function IngredientButton({ ingredientId, onClick, disabled }) {
   const ing = INGREDIENTS[ingredientId];
@@ -25,8 +26,12 @@ export default function IngredientButton({ ingredientId, onClick, disabled }) {
         <span className="w-12 h-12 rounded-xl overflow-hidden shrink-0 block">
           <Image src={ing.image} alt={ing.label} fittingType="fill" className="w-full h-full block" />
         </span>
+      ) : ing.id.startsWith('pepper_') ? (
+        <span className="w-12 h-12 flex items-center justify-center shrink-0">
+          <IconPepper level={ing.id.replace('pepper_', '')} size={42} />
+        </span>
       ) : (
-        <span className="text-3xl leading-none">{ing.emoji}</span>
+        <span className="w-12 h-12 flex items-center justify-center shrink-0"><IconPlate size={40} /></span>
       )}
       <span className={`text-[11px] font-extrabold leading-tight text-center ${ing.onDark ? 'text-white' : 'text-slate-700'}`}>
         {ing.label}

@@ -6,6 +6,7 @@ import {
   businessPerRoundBonus, MAX_IDLE_MINUTES, fleetIdleCap,
 } from '@/lib/game/catalog';
 import CoinIcon from '@/components/CoinIcon';
+import { IconBolt, IconClock } from '@/components/game/art/icons';
 import { Store as StoreIcon, Lock, Loader2 } from 'lucide-react';
 
 // businessTier is set by player level thresholds — used to tell players when a
@@ -102,8 +103,8 @@ export default function MyBusiness() {
             </div>
             <div className="mt-1 flex items-center justify-between text-[11px] font-extrabold">
               <span className="opacity-80">MAX {maxStorable.toLocaleString()} <CoinIcon className="w-3 h-3 inline -mt-0.5" /></span>
-              <span className={isFull ? 'text-tropic-gold' : 'opacity-80'}>
-                {isFull ? '⚡ FULL — collect now!' : `⏱ Full in ${fmtEta(remainingMin)}`}
+              <span className={`inline-flex items-center gap-1 ${isFull ? 'text-tropic-gold' : 'opacity-80'}`}>
+                {isFull ? (<><IconBolt size={12} /> FULL — collect now!</>) : (<><IconClock size={12} /> Full in {fmtEta(remainingMin)}</>)}
               </span>
             </div>
           </div>

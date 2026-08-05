@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
 import CoinIcon from '@/components/CoinIcon';
+import { UpgradeIcon } from '@/components/game/art/icons';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { UPGRADES, upgradeCost } from '@/lib/game/catalog';
 
@@ -28,7 +29,7 @@ export default function Upgrades() {
                 {u.image ? (
                   <Image src={u.image} alt={u.name} className="w-full h-full object-cover" fittingType="fill" />
                 ) : (
-                  <span className="text-2xl">{u.emoji}</span>
+                  <UpgradeIcon id={u.id} size={30} />
                 )}
               </div>
               <div className="flex-1 min-w-0">

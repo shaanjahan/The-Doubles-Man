@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
-import { Gem } from 'lucide-react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
-import { MAGIC_SAUCES, RARITY_STYLE, SAUCE_PACK_ODDS } from '@/lib/game/catalog';
+import { MAGIC_SAUCES, RARITY_STYLE, RARITY_ORDER, SAUCE_PRICES, SAUCE_PACK_ODDS } from '@/lib/game/catalog';
 import SauceIcon from '@/components/SauceIcon';
+import GemIcon from '@/components/GemIcon';
 
-// In-game Magic Sauces section for the real-money Store: equip owned sauces
-// (up to 2 per round) and buy a mystery 3-pack with gems. Moved here from the
-// old standalone Sauces page so one tab holds all purchasing.
+// Magic Sauces section of the Store: a rarity-priced sauce list (buy any sauce
+// directly with gems — Common cheapest through Legendary) plus the random
+// mystery 3-pack. Equipping moved entirely to the Play page's "Tap to
+// Activate" panel, so the store is purely for buying.
 
 const PACK_COST = 15;
 
 export default function SauceShopSection() {
-  const { player, toggleEquipSauce, openSaucePack } = usePlayerState();
+  const { player, openSaucePack, buySauce } = usePlayerState();
   const [lastOpened, setLastOpened] = useState([]);
+  const [buyingId, setBuyingId] = useState(null);
   if (!player) return null;
 
   const ownedMap = {};
   (player.magicSauces || []).forEach((s) => { ownedMap[s.id] = s.count || 0; });
-  const equipped = player.equippedSauces || [];
-  const affordPack = (player.gems || 0) >= PACK_COST;
+  const gems = player.gems || 0;
+  const affordPack = gems >= PACK_COST;
+
+  // Price list order: cheapest rarity first, then by name within a rarity.
+  const priceList = [...MAGIC_SAUCES].sort((a, b) => {
+    const r = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
+    return r !== 0 ? r : a.name.localeCompare(b.name);
+  });
 
   async function handleOpenPack() {
     if (!affordPack) return;
@@ -26,33 +34,31 @@ export default function SauceShopSection() {
     setLastOpened(got || []);
   }
 
+  async function handleBuy(id) {
+    if (buyingId) return;
+    setBuyingId(id);
+    await buySauce(id);
+    setBuyingId(null);
+  }
+
   return (
     <div className="space-y-3">
       <h2 className="text-[11px] uppercase font-extrabold text-purple-700 tracking-wide">Magic Sauces</h2>
 
-      {/* Equipped slots */}
+      {/* Rarity price key */}
       <div className="bg-white rounded-2xl p-3 shadow border border-purple-100">
-        <div className="text-[11px] uppercase font-extrabold text-purple-700 mb-1">Equipped ({equipped.length}/2)</div>
-        {equipped.length === 0 ? (
-          <p className="text-xs text-slate-400">No sauce equipped. Tap an owned sauce below to equip.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {equipped.map((id) => {
-              const s = MAGIC_SAUCES.find((x) => x.id === id);
-              if (!s) return null;
-              return (
-                <button key={id} onClick={() => toggleEquipSauce(id)} className="w-full bg-purple-50 border border-purple-200 rounded-2xl px-2 py-2 flex items-center gap-2 text-left active:scale-95">
-                  <SauceIcon sauce={s} sizeClass="w-9 h-9" emojiClass="text-2xl" />
-                  <div className="text-[11px] flex-1">
-                    <div className="font-bold text-slate-800">{s.name}</div>
-                    <div className="text-slate-500">{s.description}</div>
-                  </div>
-                  <span className="text-[10px] text-rose-500 font-bold px-2">remove</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="text-[11px] uppercase font-extrabold text-purple-700 mb-1.5">Sauce Prices</div>
+        <div className="flex flex-wrap gap-1.5">
+          {RARITY_ORDER.map((r) => {
+            const style = RARITY_STYLE[r];
+            return (
+              <span key={r} className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-1 rounded-full border ${style.bg} ${style.border} ${style.text}`}>
+                {r} · {SAUCE_PRICES[r]} <GemIcon className="w-3 h-3 inline-block" />
+              </span>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-slate-400 mt-1.5">Activate owned sauces on the Play page before a round.</p>
       </div>
 
       {/* Mystery pack */}
@@ -70,9 +76,9 @@ export default function SauceShopSection() {
           <button
             onClick={handleOpenPack}
             disabled={!affordPack}
-            className={`px-4 py-2 rounded-full text-sm font-extrabold flex items-center gap-1 transition ${affordPack ? 'bg-rose-400 text-white hover:bg-rose-500 active:scale-95' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+            className={`px-4 py-2 rounded-full text-sm font-extrabold flex items-center gap-1.5 transition ${affordPack ? 'bg-rose-400 text-white hover:bg-rose-500 active:scale-95' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
           >
-            <Gem size={14} /> {PACK_COST}
+            <GemIcon className="w-4 h-4" /> {PACK_COST}
           </button>
         </div>
         {lastOpened.length > 0 && (
@@ -87,12 +93,13 @@ export default function SauceShopSection() {
         )}
       </div>
 
-      {/* Collection */}
+      {/* Price list, cheapest rarity first */}
       <div className="space-y-2">
-        {MAGIC_SAUCES.map((s) => {
+        {priceList.map((s) => {
           const count = ownedMap[s.id] || 0;
-          const isEquipped = equipped.includes(s.id);
           const style = RARITY_STYLE[s.rarity];
+          const price = SAUCE_PRICES[s.rarity];
+          const afford = gems >= price;
           return (
             <div key={s.id} className={`rounded-2xl border p-3 flex items-center gap-3 ${style.bg} ${style.border}`}>
               <SauceIcon sauce={s} sizeClass="w-12 h-12" emojiClass="text-2xl" />
@@ -104,16 +111,13 @@ export default function SauceShopSection() {
                 <div className="text-[11px] text-slate-600">{s.description}</div>
                 <div className="text-[10px] text-slate-500 mt-0.5">Owned: {count}</div>
               </div>
-              {count > 0 ? (
-                <button
-                  onClick={() => toggleEquipSauce(s.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-extrabold transition ${isEquipped ? 'bg-emerald-400 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-95'}`}
-                >
-                  {isEquipped ? 'Equipped ✓' : 'Equip'}
-                </button>
-              ) : (
-                <div className="text-[10px] text-slate-400 font-bold">Not owned</div>
-              )}
+              <button
+                onClick={() => handleBuy(s.id)}
+                disabled={!afford || buyingId !== null}
+                className={`px-3 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1 transition shrink-0 ${afford ? 'bg-purple-500 text-white hover:bg-purple-600 active:scale-95' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+              >
+                {buyingId === s.id ? '…' : (<><GemIcon className="w-3.5 h-3.5" /> {price}</>)}
+              </button>
             </div>
           );
         })}

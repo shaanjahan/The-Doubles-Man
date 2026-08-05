@@ -69,7 +69,8 @@ export default function TrinidadMap({ value, onChange, businessTier = 0 }) {
       </div>
 
       <LocationPicker
-        locations={LOCATIONS.filter((l) => l.unlockTier <= businessTier)}
+        locations={LOCATIONS}
+        businessTier={businessTier}
         value={value}
         onChange={(id) => onChange(Number(id))}
       />

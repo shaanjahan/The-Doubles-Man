@@ -2,10 +2,30 @@ import React from 'react';
 import { Play as PlayIcon } from 'lucide-react';
 import { TapBadge } from './PageTour';
 import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
+import { Lock } from 'lucide-react';
+import { INGREDIENTS } from '@/lib/game/catalog';
+import {
+  IconPepper, IconTrophy, IconBell, IconFlame, IconMedal,
+  IconChefHat, IconPeople, IconWrench, IconFoodCart, IconHeart,
+} from '@/components/game/art/icons';
+
+// Tiny framed ingredient-art chip for tutorial mock order bubbles/trays.
+function IngChip({ id, size = 22 }) {
+  const ing = INGREDIENTS[id];
+  if (ing?.image) {
+    return (
+      <span className="rounded-md overflow-hidden inline-block shrink-0" style={{ width: size, height: size }}>
+        <img src={ing.image} alt={ing.label} className="w-full h-full object-cover" />
+      </span>
+    );
+  }
+  return <IconPepper level={(id || '').replace('pepper_', '')} size={size} />;
+}
 
 // All page walkthroughs live here so the Hub's "How to Play" button can replay
 // any of them on demand. Each `visual` is a faithful mock of the real screen
-// button (same classes/tokens) with a 👆 "Tap here" badge on the exact spot.
+// button (same classes/tokens) with a drawn "Tap here" badge on the exact spot.
 
 export const PLAY_TOUR_STEPS = [
   {
@@ -14,7 +34,7 @@ export const PLAY_TOUR_STEPS = [
     visual: (
       <div className="bg-white rounded-2xl px-3 py-2 shadow border border-amber-100 w-full max-w-[230px]">
         <div className="text-[11px] font-bold text-slate-700">Order</div>
-        <div className="flex gap-1 text-lg">🥖 🟡 🌶️ 🧅</div>
+        <div className="flex gap-1 items-center">{['bara', 'channa', 'pepper_medium', 'cucumber'].map((id) => <IngChip key={id} id={id} />)}</div>
       </div>
     ),
   },
@@ -23,10 +43,10 @@ export const PLAY_TOUR_STEPS = [
     body: 'Tap each item in the bottom tray to stack it on your prep board. Match the customer\u2019s order.',
     visual: (
       <div className="flex flex-col gap-2 w-full max-w-[240px]">
-        <div className="bg-black/40 rounded-full px-3 py-1.5 border border-white/10 flex gap-1 text-lg">🌶️ 🧅 🟡</div>
+        <div className="bg-black/40 rounded-full px-3 py-1.5 border border-white/10 flex gap-1 items-center">{['pepper_medium', 'cucumber', 'channa'].map((id) => <IngChip key={id} id={id} />)}</div>
         <div className="flex gap-1.5 justify-center">
-          {['🥖', '🟡', '🟤', '🧅', '🌶️'].map((e, i) => (
-            <div key={i} className={`w-9 h-9 rounded-2xl flex items-center justify-center text-lg ${i === 3 ? 'bg-tropic-coral/30 ring-2 ring-tropic-coral animate-[wiggle_1.5s_ease-in-out_infinite]' : 'bg-white/10'}`}>{e}</div>
+          {['bara', 'channa', 'tamarind', 'cucumber', 'pepper_medium'].map((id, i) => (
+            <div key={i} className={`w-9 h-9 rounded-2xl flex items-center justify-center ${i === 3 ? 'bg-tropic-coral/30 ring-2 ring-tropic-coral animate-[wiggle_1.5s_ease-in-out_infinite]' : 'bg-white/10'}`}><IngChip id={id} size={24} /></div>
           ))}
         </div>
       </div>
@@ -49,7 +69,7 @@ export const PLAY_TOUR_STEPS = [
     body: 'Each customer has a draining patience bar. Let it run out and they leave angry — 3 strikes ends the round.',
     visual: (
       <div className="flex items-center gap-2">
-        <span className="text-tropic-coral">❤️❤️</span><span className="text-tropic-coral/25">❤️</span>
+        <span className="inline-flex gap-0.5"><IconHeart size={18} /><IconHeart size={18} /><IconHeart size={18} className="opacity-25" /></span>
       </div>
     ),
   },
@@ -96,8 +116,8 @@ export const HUB_TOUR_STEPS = [
     body: 'Coins and gems live in the top-right bar. You\u2019ll spend them in Upgrades and the Store.',
     visual: (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 bg-tropic-gold rounded-full px-2.5 py-1 text-sm font-bold text-black">🪙 1.2K</div>
-        <div className="flex items-center gap-1 bg-tropic-coral rounded-full px-2.5 py-1 text-sm font-bold text-black">💎 12</div>
+        <div className="flex items-center gap-1 bg-tropic-gold rounded-full px-2.5 py-1 text-sm font-bold text-black"><CoinIcon className="w-4 h-4" /> 1.2K</div>
+        <div className="flex items-center gap-1 bg-tropic-coral rounded-full px-2.5 py-1 text-sm font-bold text-black"><GemIcon className="w-4 h-4" /> 12</div>
       </div>
     ),
   },
@@ -152,9 +172,9 @@ export const LEADERBOARD_TOUR_STEPS = [
     body: 'Tap these pills at the top to move between Best Round, Customers, and Longest Combo boards.',
     visual: (
       <div className="flex gap-1.5 flex-wrap justify-center">
-        {[['🏆', 'Best Round'], ['🛎️', 'Customers'], ['🔥', 'Longest Combo']].map(([e, l], i) => (
-          <div key={l} className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold ${i === 0 ? 'bg-amber-400 text-amber-950 ring-4 ring-amber-300/30 animate-[wiggle_1.5s_ease-in-out_infinite]' : 'bg-white text-slate-500 border border-amber-100'}`}>
-            {e} {l}
+        {[[IconTrophy, 'Best Round'], [IconBell, 'Customers'], [IconFlame, 'Longest Combo']].map(([E, l], i) => (
+          <div key={l} className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold inline-flex items-center gap-1 ${i === 0 ? 'bg-amber-400 text-amber-950 ring-4 ring-amber-300/30 animate-[wiggle_1.5s_ease-in-out_infinite]' : 'bg-white text-slate-500 border border-amber-100'}`}>
+            <E size={13} /> {l}
           </div>
         ))}
       </div>
@@ -166,8 +186,8 @@ export const LEADERBOARD_TOUR_STEPS = [
     visual: (
       <div className="w-full max-w-[240px] bg-white rounded-xl overflow-hidden border border-amber-100">
         <div className="flex items-center gap-2 px-2.5 py-1.5 bg-amber-50">
-          <div className="w-5 text-center text-xs">🥇</div>
-          <div className="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center text-sm">🧑‍🍳</div>
+          <div className="w-5 flex justify-center"><IconMedal size={14} /></div>
+          <div className="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center"><IconChefHat size={16} /></div>
           <div className="flex-1">
             <div className="font-bold text-xs text-slate-800">Chen (you)</div>
             <div className="text-[9px] text-slate-500">Lvl 12</div>
@@ -176,7 +196,7 @@ export const LEADERBOARD_TOUR_STEPS = [
         </div>
         <div className="flex items-center gap-2 px-2.5 py-1.5">
           <div className="w-5 text-center text-xs text-slate-400">2</div>
-          <div className="w-7 h-7 rounded-full bg-sky-200 flex items-center justify-center text-sm">🧑‍💼</div>
+          <div className="w-7 h-7 rounded-full bg-sky-200 flex items-center justify-center"><IconPeople size={16} /></div>
           <div className="flex-1">
             <div className="font-bold text-xs text-slate-800">Ria</div>
             <div className="text-[9px] text-slate-500">Lvl 8</div>
@@ -204,7 +224,7 @@ export const UPGRADES_TOUR_STEPS = [
     body: 'Each upgrade boosts your stall. Tap the amber Buy button to spend dollars and level it up.',
     visual: (
       <div className="w-full max-w-[260px] bg-white rounded-2xl p-2.5 flex items-center gap-2 shadow border border-amber-100">
-        <div className="w-10 h-10 bg-amber-100 rounded-2xl flex items-center justify-center text-xl shrink-0">💪</div>
+        <div className="w-10 h-10 bg-amber-100 rounded-2xl flex items-center justify-center shrink-0"><IconWrench size={22} /></div>
         <div className="flex-1">
           <div className="font-extrabold text-slate-800 text-xs">Tanty Power</div>
           <div className="text-[10px] text-slate-500">+12% prep flow per level</div>
@@ -268,7 +288,7 @@ export const BUSINESS_TOUR_STEPS = [
     body: 'Each business earns dollars per minute and adds a per-round bonus. Tap Buy (with the dollar cost) to add one.',
     visual: (
       <div className="w-full max-w-[260px] bg-white rounded-2xl p-2.5 flex items-center gap-2 border border-amber-100">
-        <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-xl shrink-0">🛒</div>
+        <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center shrink-0"><IconFoodCart size={26} /></div>
         <div className="flex-1">
           <div className="font-extrabold text-slate-800 text-xs">Doubles Bike</div>
           <div className="text-[10px] text-slate-600">Each earns 200/min</div>
@@ -288,7 +308,7 @@ export const BUSINESS_TOUR_STEPS = [
     body: 'Higher-tier businesses unlock at higher levels — locked ones show a padlock and the level they open at.',
     visual: (
       <div className="flex flex-col items-center gap-1 text-slate-400">
-        <div className="text-2xl">🔒</div>
+        <Lock size={24} />
         <div className="text-[10px] font-bold">Unlocks at Level 5</div>
       </div>
     ),

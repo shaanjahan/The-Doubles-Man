@@ -136,13 +136,23 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   deno run --allow-net --allow-read --allow-env \
     scripts/seed-testers.ts            # dry-run; add --apply to write
   ```
-- **Status (2026-07-30):** **CUTOVER DONE — `thedoublesman.com` is live on
-  Netlify + Supabase** with a valid Let's Encrypt cert and self-hosted `/game/`
-  art. Base44 is out of the serving path but still live as rollback. Game art +
-  tester avatars rehosted. Full-restore script verified against **real** data
-  (Player export + Activity-CSV email join, 8/8 resolve). **Remaining:** testers
-  sign in → per-tester `seed-testers.ts --apply` restore (gated) → decommission
-  Base44 last.
+- **Status (2026-08-05, launch audit — supersedes everything above in this
+  section):** **RESTORE COMPLETE for every returned tester.** 7 accounts carry
+  full restored progress (Shaanjahan, Spiceify→Shivan, Aunty Babsie, Anandi,
+  Nila, Ptanand, linds); Apple private-relay emails never match across teams,
+  so returning SIWA testers were linked manually via `RESTORE_OVERRIDES`
+  (`<created_by_id>=<new-email>` env on `seed-testers.ts`). Historical
+  leaderboard bests additionally auto-apply on first sign-in via the
+  `leaderboard_seed` table + `applyLeaderboardSeed` in `ensure-player`
+  (only-if-greater, stamped `seeded_at`, harmless no-op for the public).
+  **4 seed rows remain unapplied** — Aunty Natasha (seed keyed to her OLD
+  relay address, which can never auto-match; her new account "Aunty Tasha" is
+  active and needs a manual link if her old bests should count), Aunty lK,
+  Rex, and Sudarshan (none returned). New public players take pure DB
+  creation defaults via `ensure-player` (`coins 250 / gems 10 / level 1 /
+  needs_setup true`) — no restore code touches them. CSV exports are backed
+  up outside the repo at `~/Desktop/DoublesMan-Data-Backup/` (md5-verified);
+  they become the only copy of tester history once Base44 is cancelled.
 
 **Kill, don't port:** the `grantIAP` "web-preview" purchase simulator in
 `usePlayer.js` grants currency with no payment. No web surface exists

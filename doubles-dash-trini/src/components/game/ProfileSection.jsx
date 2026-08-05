@@ -1,6 +1,9 @@
 import React from 'react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { ACHIEVEMENTS, ACH_TIER_META, tierByIndex } from '@/lib/game/catalog';
+import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
+import { AchIcon, IconCrown, IconFlame } from '@/components/game/art/icons';
 import { CHARACTERS } from '@/lib/game/characters';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import { Image } from '@/components/ui/image';
@@ -43,11 +46,11 @@ export default function ProfileSection() {
           <div className="font-extrabold text-lg text-slate-800 truncate">
             {player.displayName}
             {(player.upgrades?.legacy || 0) > 0 && (
-              <span className="ml-1.5 align-middle text-[11px] font-extrabold text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-1.5 py-0.5 whitespace-nowrap">👑 Legacy {player.upgrades.legacy}</span>
+              <span className="ml-1.5 align-middle text-[11px] font-extrabold text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-1.5 py-0.5 whitespace-nowrap inline-flex items-center gap-0.5"><IconCrown size={11} /> Legacy {player.upgrades.legacy}</span>
             )}
           </div>
           <div className="text-xs text-slate-500 font-bold">Level {player.level} · {tierByIndex(player.businessTier).name}</div>
-          <div className="text-[10px] text-amber-700 font-bold mt-0.5">🔥 Daily streak: {player.dailyStreak || 0}</div>
+          <div className="text-[10px] text-amber-700 font-bold mt-0.5 inline-flex items-center gap-1"><IconFlame size={11} /> Daily streak: {player.dailyStreak || 0}</div>
         </div>
       </div>
 
@@ -93,13 +96,16 @@ export default function ProfileSection() {
             const tier = ACH_TIER_META[a.tier];
             return (
               <div key={a.id} className={`rounded-2xl p-2 border text-center transition bg-tropic-coral border-red-700 ${earned ? 'ring-2 ring-yellow-300' : ''}`}>
-                <div className="font-heading text-lg text-yellow-300 leading-none">{a.emoji} {a.name}</div>
+                <div className="flex justify-center"><AchIcon id={a.id} size={26} /></div>
+                <div className="font-heading text-lg text-yellow-300 leading-none mt-1">{a.name}</div>
                 <div className="text-[10px] text-yellow-100/90 leading-tight mt-0.5">{a.description}</div>
                 {tier && (
                   <span className={`inline-block text-[9px] font-extrabold border rounded-full px-1.5 mt-1 ${tier.badge}`}>{tier.label}</span>
                 )}
-                <div className="text-[10px] text-yellow-200 font-bold mt-0.5">
-                  💵 {(a.reward.coins || 0).toLocaleString()} · 💎 {a.reward.gems || 0}
+                <div className="text-[10px] text-yellow-200 font-bold mt-0.5 flex items-center justify-center gap-1">
+                  <CoinIcon className="w-3.5 h-3.5 inline-block" /> {(a.reward.coins || 0).toLocaleString()}
+                  <span className="opacity-70">·</span>
+                  <GemIcon className="w-3.5 h-3.5 inline-block" /> {a.reward.gems || 0}
                 </div>
                 {earned ? (
                   <div className="text-[10px] text-yellow-200 font-bold mt-0.5">Unlocked ✓</div>

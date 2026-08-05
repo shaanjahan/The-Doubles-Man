@@ -5,6 +5,8 @@ import { usePlayerState } from '@/lib/game/PlayerContext';
 import { STORE_PRODUCTS, SAUCE_PACK_ODDS } from '@/lib/game/catalog';
 import { Image } from '@/components/ui/image';
 import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
+import { IconCashStack, IconSauceBottle, IconGift } from '@/components/game/art/icons';
 import SauceShopSection from '@/components/game/SauceShopSection';
 import { Loader2 } from 'lucide-react';
 
@@ -94,15 +96,21 @@ function ProductCard({ p, onBuy, applePrice }) {
           )
         ) : p.image ? (
           <Image src={p.image} alt={p.name} className="w-full h-full bg-black object-contain" fittingType="fit" />
+        ) : p.kind === 'coin_pack' ? (
+          <IconCashStack size={30} />
+        ) : p.kind === 'sauce_pack' ? (
+          <IconSauceBottle size={30} />
+        ) : p.kind === 'gem_pack' ? (
+          <GemIcon className="w-8 h-8" />
         ) : (
-          <span className="text-2xl">{p.emoji}</span>
+          <IconGift size={30} />
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-extrabold text-slate-800 text-sm">{p.name}</div>
         <div className="text-[11px] text-slate-500">
           {p.kind === 'coin_pack' && (<span className="inline-flex items-center gap-0.5">{p.amount}{p.bonus ? ` +${p.bonus} bonus` : ''}<CoinIcon className="w-3 h-3 inline-block" /></span>)}
-          {p.kind === 'gem_pack' && `${p.amount}${p.bonus ? ` +${p.bonus} bonus` : ''} 💎`}
+          {p.kind === 'gem_pack' && (<span className="inline-flex items-center gap-0.5">{p.amount}{p.bonus ? ` +${p.bonus} bonus` : ''}<GemIcon className="w-3 h-3 inline-block" /></span>)}
           {p.kind === 'sauce_pack' && `${p.amount} random sauces`}
           {p.kind === 'bundle' && `Dollars + Gems + Sauce`}
         </div>

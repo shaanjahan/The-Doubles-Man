@@ -53,8 +53,6 @@ export default function EndOfRoundModal({ outcome, onPlayAgain, onMenu }) {
     moodColor = 'text-tropic-sea';
   }
 
-  const moodEmoji = outcome.perfectCount >= 6 ? '🏆' : outcome.mistakes === 0 ? '🌟' : outcome.servedCount > 0 ? '🥳' : '😅';
-
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
       <div className="bg-doubles-night border border-white/15 rounded-3xl max-w-sm w-full p-5 shadow-2xl text-center animate-[pop-in_0.4s_cubic-bezier(0.34,1.56,0.64,1)_both]">
@@ -97,10 +95,9 @@ export default function EndOfRoundModal({ outcome, onPlayAgain, onMenu }) {
         <div className="mt-4">
           <ShareStories
             headline="My Round Score"
-            big={outcome.score ?? outcome.coinsEarned}
+            big={(outcome.score ?? outcome.coinsEarned).toLocaleString()}
             bigLabel="points"
             subline={`${outcome.servedCount} served · ${outcome.perfectCount} perfect · ${outcome.maxCombo}x combo`}
-            emoji={moodEmoji}
           />
         </div>
         {outcome.hourlyLimited && (

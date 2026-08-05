@@ -2,6 +2,7 @@ import React from 'react';
 import { Music, Music2 } from 'lucide-react';
 import CoinIcon from '@/components/CoinIcon';
 import GemIcon from '@/components/GemIcon';
+import { Image } from '@/components/ui/image';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { useMusic } from '@/lib/game/MusicContext';
 import { BUSINESS_TIERS, xpForLevel, tierByIndex } from '@/lib/game/catalog';
@@ -37,8 +38,9 @@ export default function TopHud() {
       </div>
       <div className="flex items-center gap-2 min-w-0" style={{ padding: 0 }}>
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-wide text-tropic-gold font-bold leading-tight">
-            {tier.emoji} {tier.name}
+          <div className="text-[10px] uppercase tracking-wide text-tropic-gold font-bold leading-tight flex items-center gap-1">
+            {tier.image && <Image src={tier.image} alt="" fittingType="fill" className="w-3.5 h-3.5 rounded-full ring-1 ring-tropic-gold shrink-0" />}
+            <span className="truncate">{tier.name}</span>
           </div>
           <div className="font-extrabold text-sm leading-tight truncate flex items-center gap-1">
             {player.displayName}

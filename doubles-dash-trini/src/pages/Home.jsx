@@ -8,6 +8,7 @@ import DailyLoginModal from '@/components/DailyLoginModal';
 import { Image } from '@/components/ui/image';
 import ProfileSection from '@/components/game/ProfileSection';
 import HowToPlayButton from '@/components/game/HowToPlayButton';
+import { IconFlame, IconCrown, IconStorefront, LocationIcon } from '@/components/game/art/icons';
 
 const HUB_BG = '/game/0d9719541_1336D320-FC46-4E41-BD87-2AACAC7E4A74.webp';
 
@@ -53,18 +54,19 @@ export default function Home() {
             <Image src={tier.image} alt={tier.name} className="w-20 h-20 rounded-full object-cover ring-4 ring-tropic-gold shadow-[0_6px_16px_rgba(0,0,0,0.45)]" fittingType="fill" />
           </div>
         ) : (
-          <div className="absolute -right-6 -top-8 text-9xl opacity-20 select-none animate-[float-soft_4.5s_ease-in-out_infinite]">{tier.emoji}</div>
+          <div className="absolute -right-6 -top-8 opacity-20 select-none animate-[float-soft_4.5s_ease-in-out_infinite]"><IconCrown size={128} /></div>
         )}
         <div className="relative">
-          <div className="text-[11px] uppercase font-bold tracking-wider text-white/80">
-            {tier.emoji} {tier.name}
+          <div className="text-[11px] uppercase font-bold tracking-wider text-white/80 flex items-center gap-1.5">
+            {tier.image && <Image src={tier.image} alt="" fittingType="fill" className="w-4 h-4 rounded-full ring-1 ring-tropic-gold" />}
+            {tier.name}
           </div>
           <h1 className="text-2xl font-extrabold mt-0.5">Aye, {player.displayName}!</h1>
           <p className="text-white/85 text-sm mt-1">The streets are hungry. Time to make doubles.</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
-            <span className="bg-white/20 rounded-full px-2.5 py-1">{loc.emoji} {loc.name}</span>
+            <span className="bg-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1"><LocationIcon id={player.currentLocationId} size={13} /> {loc.name}</span>
             <span className="bg-white/20 rounded-full px-2.5 py-1">Lvl {player.level}</span>
-            <span className="bg-white/20 rounded-full px-2.5 py-1">🔥 Streak {player.dailyStreak || 0}</span>
+            <span className="bg-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1"><IconFlame size={13} /> Streak {player.dailyStreak || 0}</span>
           </div>
           <Link
             to="/play"
@@ -104,7 +106,7 @@ export default function Home() {
                 {t.image ? (
                   <Image src={t.image} alt={t.name} className="w-8 h-8 mx-auto rounded-full object-cover ring-2 ring-tropic-gold mb-1" fittingType="fill" />
                 ) : (
-                  <div className="text-lg">{t.emoji}</div>
+                  <div className="flex justify-center"><IconStorefront size={20} /></div>
                 )}
                 <div className="max-w-[64px]">{t.name}</div>
               </div>

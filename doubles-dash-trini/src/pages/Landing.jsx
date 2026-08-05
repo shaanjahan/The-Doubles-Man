@@ -5,6 +5,7 @@ import { Image } from '@/components/ui/image';
 import { MALE_CHARACTER, FEMALE_CHARACTER } from '@/lib/game/characters';
 import { BUSINESS_TIERS, CUSTOMER_TYPES, MAGIC_SAUCES, INGREDIENTS } from '@/lib/game/catalog';
 import SiteFooter from '@/components/SiteFooter';
+import { IconPlate } from '@/components/game/art/icons';
 
 // A horizontal scroller of art cards — reused for characters, tiers, sauces.
 function ArtRow({ items, accent }) {
@@ -123,7 +124,7 @@ export default function Landing() {
               {it.image ? (
                 <Image src={it.image} alt={it.label} fittingType="fit" className="w-full h-full p-1.5" />
               ) : (
-                <span className="text-2xl">🍽️</span>
+                <IconPlate size={30} />
               )}
             </div>
           ))}

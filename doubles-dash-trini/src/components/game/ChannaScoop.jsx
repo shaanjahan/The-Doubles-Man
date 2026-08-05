@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Image } from '@/components/ui/image';
 import { INGREDIENTS } from '@/lib/game/catalog';
+import { IconPepper, IconPlate } from '@/components/game/art/icons';
 
 // Hold-to-scoop channa: press and hold to fill the scoop with a conic meter;
 // release (or a quick tap) commits the ingredient, keeping logic identical.
@@ -55,7 +56,9 @@ export default function ChannaScoop({ ingredientId = 'channa', onAdd, disabled }
         {ing.image ? (
           <Image src={ing.image} alt={ing.label} fittingType="fit" className="relative w-10 h-10" />
         ) : (
-          <span className="relative text-3xl leading-none">{ing.emoji}</span>
+          <span className="relative w-10 h-10 flex items-center justify-center">
+            {ing.id?.startsWith('pepper_') ? <IconPepper level={ing.id.replace('pepper_', '')} size={34} /> : <IconPlate size={34} />}
+          </span>
         )}
       </div>
       <span className={`text-[11px] font-extrabold ${ing.onDark ? 'text-white' : 'text-slate-700'}`}>

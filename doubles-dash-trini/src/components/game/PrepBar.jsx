@@ -2,6 +2,7 @@ import React from 'react';
 import { INGREDIENTS } from '@/lib/game/catalog';
 import { Trash2 } from 'lucide-react';
 import { Image } from '@/components/ui/image';
+import { IconPepper, IconPlate } from '@/components/game/art/icons';
 
 const PEPPER_BADGE = {
   pepper_none:   { letter: 'N', color: '#ffffff' },
@@ -49,8 +50,8 @@ export default function PrepBar({ prepIds, onClear }) {
                     <Image src={ing.image} alt={ing.label} fittingType="fit" className="w-full h-full" />
                   </span>
                 ) : (
-                  <span className={`text-base px-1.5 py-0.5 leading-none ${ing.onDark ? 'text-white' : ''}`}>
-                    {ing.emoji}
+                  <span className="w-7 h-7 flex items-center justify-center">
+                    {ing.id?.startsWith('pepper_') ? <IconPepper level={ing.id.replace('pepper_', '')} size={22} /> : <IconPlate size={22} />}
                   </span>
                 )}
               </span>

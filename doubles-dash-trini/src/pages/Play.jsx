@@ -20,6 +20,7 @@ import TrinidadMap from '@/components/game/TrinidadMap';
 import PlayControls from '@/components/game/PlayControls';
 import TutorialOverlay from '@/components/game/TutorialOverlay';
 import CoinIcon from '@/components/CoinIcon';
+import { IconXBadge } from '@/components/game/art/icons';
 
 const TICK_MS = 100;
 const MAX_MISTAKES = 3; // a round ends after this many botched/missed orders
@@ -235,8 +236,12 @@ export default function Play() {
     if (!player) return;
     unlockAudio();
     sfx.click();
-    const loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
-    if (loc.unlockTier > player.businessTier) return;
+    let loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
+    // Never dead-end the start button: if the saved location is somehow above
+    // the player's tier (stale data), play the always-unlocked starter spot
+    // instead — the server 403s locked locations, so this also protects the
+    // round's rewards.
+    if (loc.unlockTier > (player.businessTier || 0)) loc = LOCATIONS[0];
     savedRef.current = false;
     setPaused(false);
     setGame(startState(buildConfig(player, loc)));
@@ -495,8 +500,8 @@ export default function Play() {
                 </div>
               </div>
             ) : (
-              <div className="text-2xl font-extrabold text-tropic-coral drop-shadow animate-[shake-soft_0.5s_ease-in-out]">
-                ❌ Oops!
+              <div className="text-2xl font-extrabold text-tropic-coral drop-shadow animate-[shake-soft_0.5s_ease-in-out] inline-flex items-center gap-1.5">
+                <IconXBadge size={22} /> Oops!
               </div>
             )}
           </div>

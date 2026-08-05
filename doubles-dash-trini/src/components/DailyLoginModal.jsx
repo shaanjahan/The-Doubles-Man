@@ -5,6 +5,7 @@ import { DAILY_REWARDS, MAGIC_SAUCES } from '@/lib/game/catalog';
 import SauceIcon from '@/components/SauceIcon';
 import CoinIcon from '@/components/CoinIcon';
 import GemIcon from '@/components/GemIcon';
+import { IconGift } from '@/components/game/art/icons';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -25,7 +26,7 @@ export default function DailyLoginModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] animate-[fadeIn_0.2s_easy-out]">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+1.25rem))] pb-[max(1rem,env(safe-area-inset-bottom))] animate-[fadeIn_0.2s_easy-out]">
       <div className="bg-zinc-900 rounded-3xl shadow-2xl max-w-sm w-full p-5 border border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -64,7 +65,7 @@ export default function DailyLoginModal() {
                   }
                   return (
                     <div className="mt-1 flex justify-center items-center h-6">
-                      {r.coins ? <CoinIcon className="h-5 w-5 inline-block" /> : r.gems ? <GemIcon className="h-5 w-5 inline-block" /> : <span className="text-xl">🎁</span>}
+                      {r.coins ? <CoinIcon className="h-5 w-5 inline-block" /> : r.gems ? <GemIcon className="h-5 w-5 inline-block" /> : <IconGift size={20} />}
                     </div>
                   );
                 })()}

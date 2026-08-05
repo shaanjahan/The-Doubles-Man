@@ -1,12 +1,13 @@
 import React from 'react';
 import { Sun, CalendarDays, CalendarRange } from 'lucide-react';
 import CoinIcon from '@/components/CoinIcon';
+import GemIcon from '@/components/GemIcon';
 
 export function MissionRow({ m }) {
   const pct = Math.min(100, (m.value / m.target) * 100);
   const rewardBits = [];
   if (m.reward?.coins) rewardBits.push(<span key="c" className="inline-flex items-center gap-0.5">+{m.reward.coins}<CoinIcon className="w-3 h-3 inline-block" /></span>);
-  if (m.reward?.gems) rewardBits.push(<span key="g">+{m.reward.gems} 💎</span>);
+  if (m.reward?.gems) rewardBits.push(<span key="g" className="inline-flex items-center gap-0.5">+{m.reward.gems}<GemIcon className="w-3 h-3 inline-block" /></span>);
   if (m.reward?.xp) rewardBits.push(<span key="x">+{m.reward.xp} XP</span>);
 
   return (

@@ -1,9 +1,11 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
 import { isAvatarUrl } from '@/lib/game/characters';
+import { IconChefHat } from '@/components/game/art/icons';
 
-// Renders the player vendor wherever their avatar appears. Supports both the
-// new character-art URLs and legacy emoji strings for older player records.
+// Renders the player vendor wherever their avatar appears. Character-art URLs
+// render as-is; anything else (including legacy emoji records) falls back to
+// the drawn chef-hat badge so no platform emoji ever appears.
 export default function PlayerAvatar({ avatarEmoji, sizeClass = 'w-10 h-10', emojiClass = 'text-2xl', className = '' }) {
   if (isAvatarUrl(avatarEmoji)) {
     return (
@@ -13,8 +15,8 @@ export default function PlayerAvatar({ avatarEmoji, sizeClass = 'w-10 h-10', emo
     );
   }
   return (
-    <div className={`rounded-2xl bg-amber-200/70 ring-2 ring-amber-300 flex items-center justify-center shrink-0 ${sizeClass} ${emojiClass} ${className}`}>
-      {avatarEmoji || '🧑‍🍳'}
+    <div className={`rounded-2xl bg-amber-200/70 ring-2 ring-amber-300 flex items-center justify-center shrink-0 ${sizeClass} ${className}`}>
+      <IconChefHat size="72%" />
     </div>
   );
 }

@@ -6,14 +6,15 @@ import {
   PLAY_TOUR_STEPS, HUB_TOUR_STEPS, STORE_TOUR_STEPS,
   LEADERBOARD_TOUR_STEPS, UPGRADES_TOUR_STEPS, BUSINESS_TOUR_STEPS,
 } from './tours';
+import { IconPan, IconHome, IconCart, IconTrophy, IconStar, IconStorefront } from '@/components/game/art/icons';
 
 const SECTIONS = [
-  { key: 'play',        label: 'How to Serve Doubles', emoji: '🍳', steps: PLAY_TOUR_STEPS },
-  { key: 'hub',         label: 'The Hub (Home)',       emoji: '🏠', steps: HUB_TOUR_STEPS },
-  { key: 'store',       label: 'The Store',             emoji: '🛒', steps: STORE_TOUR_STEPS },
-  { key: 'leaderboard', label: 'Leaderboards',          emoji: '🏆', steps: LEADERBOARD_TOUR_STEPS },
-  { key: 'upgrades',    label: 'Upgrades',              emoji: '⭐', steps: UPGRADES_TOUR_STEPS },
-  { key: 'business',    label: 'My Business',          emoji: '🏪', steps: BUSINESS_TOUR_STEPS },
+  { key: 'play',        label: 'How to Serve Doubles', Icon: IconPan,        steps: PLAY_TOUR_STEPS },
+  { key: 'hub',         label: 'The Hub (Home)',       Icon: IconHome,       steps: HUB_TOUR_STEPS },
+  { key: 'store',       label: 'The Store',             Icon: IconCart,       steps: STORE_TOUR_STEPS },
+  { key: 'leaderboard', label: 'Leaderboards',          Icon: IconTrophy,     steps: LEADERBOARD_TOUR_STEPS },
+  { key: 'upgrades',    label: 'Upgrades',              Icon: IconStar,       steps: UPGRADES_TOUR_STEPS },
+  { key: 'business',    label: 'My Business',          Icon: IconStorefront, steps: BUSINESS_TOUR_STEPS },
 ];
 
 export default function InstructionsModal({ open, onClose }) {
@@ -60,7 +61,7 @@ export default function InstructionsModal({ open, onClose }) {
               onClick={() => setActive(s.key)}
               className="w-full flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl px-3 py-2.5 text-left active:scale-95 transition"
             >
-              <span className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center text-lg shrink-0">{s.emoji}</span>
+              <span className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center shrink-0"><s.Icon size={22} /></span>
               <span className="flex-1 font-bold text-foreground text-sm">{s.label}</span>
               <ChevronRight size={18} className="text-white/40 shrink-0" />
             </button>

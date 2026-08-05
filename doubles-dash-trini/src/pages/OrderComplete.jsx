@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { IconParty } from '@/components/game/art/icons';
 
 export default function OrderComplete() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function OrderComplete() {
         <h1 className="text-lg font-extrabold text-foreground">Order Complete</h1>
       </header>
       <div className="px-4 pt-10 text-center">
-        <div className="text-6xl mb-3 animate-[pop-in_0.5s_ease-out_both]">🎉</div>
+        <div className="mb-3 flex justify-center animate-[pop-in_0.5s_ease-out_both]"><IconParty size={64} /></div>
         <h2 className="text-2xl font-extrabold text-foreground">Payment received!</h2>
         <p className="text-sm text-muted-foreground mt-2">
           Your purchase is confirmed and your rewards are being added to your stall. If they don't

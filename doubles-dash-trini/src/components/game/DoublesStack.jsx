@@ -1,4 +1,5 @@
 import React from 'react';
+import { INGREDIENTS } from '@/lib/game/catalog';
 
 // Stacked, cross-section "doubles on wax paper" built from the prep ids:
 // bottom bara → channa (+ pepper dots) → tamarind drizzle → toppings → top bara.
@@ -103,8 +104,8 @@ export default function DoublesStack({ prepIds }) {
           {toppings.length > 0 && (
             <div className="flex justify-center gap-1 -mt-0.5 w-[86%] py-0.5 overflow-hidden animate-[pop-in_0.25s_ease-out_both]">
               {toppings.map((t, i) => (
-                <span key={i} className="text-sm leading-none">
-                  {t === 'cucumber' ? '🥒' : '🌿'}
+                <span key={i} className="w-4 h-4 rounded-full overflow-hidden inline-block">
+                  <img src={INGREDIENTS[t]?.image} alt={t} className="w-full h-full object-cover" />
                 </span>
               ))}
             </div>

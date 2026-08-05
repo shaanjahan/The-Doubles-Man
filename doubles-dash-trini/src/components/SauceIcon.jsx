@@ -1,8 +1,9 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
+import { IconSauceBottle } from '@/components/game/art/icons';
 
-// Renders a magic sauce. If the sauce defines an `image` it is shown (covered)
-// so branded assets like Golden Tamarind replace the generic emoji everywhere.
+// Renders a magic sauce. If the sauce defines an `image` it is shown (covered);
+// otherwise the drawn sauce-bottle badge — never a platform emoji.
 export default function SauceIcon({ sauce, sizeClass = 'w-9 h-9', emojiClass = 'text-2xl', className = '' }) {
   if (!sauce) return null;
   if (sauce.image) {
@@ -13,6 +14,8 @@ export default function SauceIcon({ sauce, sizeClass = 'w-9 h-9', emojiClass = '
     );
   }
   return (
-    <div className={`shrink-0 leading-none ${emojiClass} ${className}`}>{sauce.emoji}</div>
+    <div className={`shrink-0 flex items-center justify-center ${sizeClass} ${className}`}>
+      <IconSauceBottle size="88%" />
+    </div>
   );
 }

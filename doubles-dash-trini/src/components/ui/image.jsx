@@ -2,13 +2,15 @@ import * as React from "react"
 import { useSize } from "@/hooks/use-size"
 import { cn } from "@/lib/utils"
 
-const FALLBACK_IMAGE_URL =
-  "https://static.wixstatic.com/media/12d367_4f26ccd17f8f4e3a8958306ea08c2332~mv2.png"
+// Local fallback for failed loads — never an external CDN (the old Wix
+// fallback was a live dependency on wixstatic.com firing on every 404).
+const FALLBACK_IMAGE_URL = "/game/6b677e427_A36ED237-6A52-436C-A969-12B05F2D0EFD.webp"
 
-// Wix Media Platform hosts whose images support /v1/ transform URLs
-// (resize, focal-point crop, and format conversion via the OUTPUT FILENAME
-// EXTENSION — a .webp output re-encodes JPG/PNG uploads to WebP on the fly).
-const WIX_MEDIA_HOSTS = ["media.base44.com", "static.wixstatic.com"]
+// Wix Media Platform hosts whose images support /v1/ transform URLs.
+// Vestigial post-migration: no game/DB URL points at these hosts anymore
+// (verified 2026-08-04), so the transform path is dead code kept only
+// because this is a vendored component.
+const WIX_MEDIA_HOSTS = ["static.wixstatic.com"]
 // First-paint width before the container is measured.
 const DEFAULT_TRANSFORM_WIDTH = 1024
 const DEVICE_PIXEL_RATIOS = [1, 2, 3]
