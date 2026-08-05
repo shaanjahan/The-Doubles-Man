@@ -145,10 +145,10 @@ economy engine — not just balances — from the Base44 **Player entity** expor
   leaderboard bests additionally auto-apply on first sign-in via the
   `leaderboard_seed` table + `applyLeaderboardSeed` in `ensure-player`
   (only-if-greater, stamped `seeded_at`, harmless no-op for the public).
-  **4 seed rows remain unapplied** — Aunty Natasha (seed keyed to her OLD
-  relay address, which can never auto-match; her new account "Aunty Tasha" is
-  active and needs a manual link if her old bests should count), Aunty lK,
-  Rex, and Sudarshan (none returned). New public players take pure DB
+  **3 seed rows remain unapplied** — Aunty lK, Rex, and Sudarshan (none
+  returned). Aunty Natasha's row was RETIRED 2026-08-05 (owner decision): her
+  new "Aunty Tasha" account organically surpassed every old best, so the seed
+  was moot; her history survives in the backed-up CSVs. New public players take pure DB
   creation defaults via `ensure-player` (`coins 250 / gems 10 / level 1 /
   needs_setup true`) — no restore code touches them. CSV exports are backed
   up outside the repo at `~/Desktop/DoublesMan-Data-Backup/` (md5-verified);
