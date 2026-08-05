@@ -90,6 +90,25 @@ serveWithCors(async (req) => {
       return Response.json({ error: 'Wrong bundle id' }, { status: 400 });
     }
 
+    // Sandbox receipts cost nothing to produce (any sandbox Apple ID can mint
+    // them), so they only grant for allow-listed tester accounts —
+    // SANDBOX_TESTER_EMAILS secret, comma-separated lowercase. Everyone else
+    // is rejected and logged (stage 'sandbox_blocked') so probing is visible.
+    // A missing environment field is treated as non-Production, never granted.
+    if (String(tx.environment || '') !== 'Production') {
+      const allowed = (Deno.env.get('SANDBOX_TESTER_EMAILS') || '')
+        .toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+      const email = (user.email || '').toLowerCase();
+      if (!email || !allowed.includes(email)) {
+        console.error('iap reject: sandbox receipt from non-tester:', email || user.id);
+        await dbg('sandbox_blocked', {
+          environment: tx.environment ?? null, email,
+          productId: String(tx.productId), transactionId: String(tx.transactionId),
+        });
+        return Response.json({ error: 'Sandbox purchases are not enabled for this account' }, { status: 403 });
+      }
+    }
+
     // appAccountToken: verify-if-present (bind the transaction to this player).
     // Not required — the native layer doesn't set it yet.
     if (tx.appAccountToken && String(tx.appAccountToken).toLowerCase() !== user.id.toLowerCase()) {
