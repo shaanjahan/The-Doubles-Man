@@ -70,14 +70,20 @@ export default function ShareStories({
     URL.revokeObjectURL(url);
   }
 
-  async function handleShare() {
+  // One reliable delivery path for every platform button. In the app (and
+  // any browser with Web Share Level 2) the native share sheet opens with the
+  // card attached — the user picks Instagram / TikTok / Facebook / anywhere.
+  // In browsers without file-share, the card downloads and the platform's
+  // site opens in a new tab. NEVER navigate this page to a custom scheme:
+  // inside the WKWebView those aren't link-activated, so the shell doesn't
+  // hand them to iOS — the game itself would navigate away (the old bug).
+  async function deliver(webUrl) {
     if (busy) return;
     setBusy(true);
     try {
       const blob = await buildBlob();
       const file = new File([blob], 'doubles_score.png', { type: 'image/png' });
 
-      // Preferred: native share sheet with the image (reaches IG / WhatsApp / etc.)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -86,20 +92,15 @@ export default function ShareStories({
             text: `${headline}: ${big} ${bigLabel || ''}`.trim(),
           });
           trackInvite?.();
-          return;
         } catch (_) {
-          // user dismissed the sheet — fall through to save + open Instagram
+          // user closed the sheet — done, no fallback navigation
         }
+        return;
       }
 
-      // Fallback: save the card locally, then best-effort open Instagram.
       saveToDevice(blob);
       trackInvite?.();
-      const start = Date.now();
-      window.location.href = 'instagram://story-camera';
-      setTimeout(() => {
-        if (Date.now() - start < 2200) window.open('https://www.instagram.com', '_blank');
-      }, 2000);
+      if (webUrl) window.open(webUrl, '_blank', 'noopener');
     } catch (err) {
       console.error('Share failed:', err);
       alert('Sharing is not available on this device right now.');
@@ -108,52 +109,9 @@ export default function ShareStories({
     }
   }
 
-  // TikTok has no image deep link, so save the card to the device then open
-  // the app/web — the user posts the saved image as a story / post.
-  async function handleTikTok() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const blob = await buildBlob();
-      saveToDevice(blob);
-
-      // Best-effort open of the TikTok app; falls back to the web site.
-      const start = Date.now();
-      trackInvite?.();
-      window.location.href = 'tiktok://';
-      setTimeout(() => {
-        if (Date.now() - start < 2200) window.open('https://www.tiktok.com', '_blank');
-      }, 2000);
-    } catch (err) {
-      console.error('TikTok share failed:', err);
-      alert('Sharing is not available on this device right now.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Facebook can't take a raw image via web link, so save the card to the
-  // device then open the app/web for the user to attach and post.
-  async function handleFacebook() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const blob = await buildBlob();
-      saveToDevice(blob);
-
-      const start = Date.now();
-      trackInvite?.();
-      window.location.href = 'fb://';
-      setTimeout(() => {
-        if (Date.now() - start < 2200) window.open('https://www.facebook.com', '_blank');
-      }, 2000);
-    } catch (err) {
-      console.error('Facebook share failed:', err);
-      alert('Sharing is not available on this device right now.');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const handleShare = () => deliver('https://www.instagram.com');
+  const handleTikTok = () => deliver('https://www.tiktok.com/upload');
+  const handleFacebook = () => deliver('https://www.facebook.com');
 
   const isRank = variant === 'rank';
 
