@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LOCATIONS, MAGIC_SAUCES, BUSINESS_TIERS,
+  STOCK, stockRank, restockCost,
 } from '@/lib/game/catalog';
 import { spawnCustomer, classifyServe, challengeRng } from '@/lib/game/engine';
 import { sfx, unlockAudio } from '@/lib/game/useSound';
@@ -20,7 +21,7 @@ import TrinidadMap from '@/components/game/TrinidadMap';
 import PlayControls from '@/components/game/PlayControls';
 import TutorialOverlay from '@/components/game/TutorialOverlay';
 import CoinIcon from '@/components/CoinIcon';
-import { IconXBadge } from '@/components/game/art/icons';
+import { IconXBadge, IconPlate, IconBolt } from '@/components/game/art/icons';
 
 const TICK_MS = 100;
 const MAX_MISTAKES = 3; // a round ends after this many botched/missed orders
@@ -107,9 +108,19 @@ function startState(cfg) {
     prepSpeedMult: cfg.prepSpeedMult,
     sauceUsed: cfg.sauceUsed,
     locationId: cfg.locationId,
-    sessionId: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random(),
+    sessionId: cfg.sessionId || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random()),
+    // Bara Stock: the round's doubles supply. 0 allowance = legacy/no-limit
+    // safety fallback (never happens through the normal start paths).
+    stockAllowance: cfg.stockAllowance || 0,
+    stockLeft: cfg.stockAllowance || 0,
+    roundCapped: false,
+    soldOut: false,
     flash: null,
   };
+}
+
+export function makeSessionId() {
+  return (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
 }
 
 function tickGame(g) {
@@ -163,12 +174,13 @@ function computeOutcome(g) {
     sauceUsed: !!g.sauceUsed,
     sessionId: g.sessionId || '',
     challenge: !!g.challenge,
+    soldOut: !!g.soldOut,
     score: Math.round(g.coinsEarned + g.perfectCount * 50 + g.maxCombo * 25),
   };
 }
 
 export default function Play() {
-  const { player, finalizeRound, completeTutorial } = usePlayerState();
+  const { player, finalizeRound, completeTutorial, buyRoundStock } = usePlayerState();
   const navigate = useNavigate();
   const [phase, setPhase] = useState('prep');
   const [locId, setLocId] = useState(0);
@@ -177,6 +189,13 @@ export default function Play() {
   const savedRef = useRef(false);
   const [askExit, setAskExit] = useState(false);
   const [paused, setPaused] = useState(false);
+  // Bara Stock UI state: pre-round crate picker + in-round restock offer.
+  const [crates, setCrates] = useState(0);
+  const [starting, setStarting] = useState(false);
+  const [restockOffer, setRestockOffer] = useState(null);
+  const [restocking, setRestocking] = useState(false);
+  const [nextRestockCost, setNextRestockCost] = useState(0);
+  const [stockMsg, setStockMsg] = useState('');
 
   useEffect(() => {
     if (player) setLocId(player.currentLocationId || 0);
@@ -196,7 +215,7 @@ export default function Play() {
 
   useEffect(() => {
     if (phase !== 'play' || !game) return;
-    if ((game.mistakes || 0) < MAX_MISTAKES) return;
+    if ((game.mistakes || 0) < MAX_MISTAKES && !game.roundCapped) return;
     if (savedRef.current) return;
     savedRef.current = true;
     const localOut = computeOutcome(game);
@@ -244,8 +263,8 @@ export default function Play() {
     } catch {}
   }, [phase, game]);
 
-  function handleStart() {
-    if (!player) return;
+  async function handleStart() {
+    if (!player || starting) return;
     unlockAudio();
     sfx.click();
     let loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
@@ -254,9 +273,30 @@ export default function Play() {
     // instead — the server 403s locked locations, so this also protects the
     // round's rewards.
     if (loc.unlockTier > (player.businessTier || 0)) loc = LOCATIONS[0];
+    const rank = stockRank(player.businessTier);
+    const sessionId = makeSessionId();
+    let allowance = STOCK.baseByRank[rank];
+    // Crates are charged server-side BEFORE the round exists (non-refundable
+    // once bought). Zero crates skips the network entirely — the free base
+    // stock is the frictionless default.
+    if (crates > 0) {
+      setStarting(true);
+      const bought = await buyRoundStock('start', sessionId, crates);
+      setStarting(false);
+      if (!bought) { setStockMsg('Could not buy stock — check your dollars and connection.'); return; }
+      allowance = bought.allowance;
+      setNextRestockCost(bought.nextRestockCost || restockCost(rank, 0));
+    } else {
+      setNextRestockCost(restockCost(rank, 0));
+    }
+    setStockMsg('');
     savedRef.current = false;
     setPaused(false);
-    setGame(startState(buildConfig(player, loc)));
+    setRestockOffer(null);
+    const cfg = buildConfig(player, loc);
+    cfg.sessionId = sessionId;
+    cfg.stockAllowance = allowance;
+    setGame(startState(cfg));
     setOutcome(null);
     setPhase('play');
   }
@@ -273,9 +313,46 @@ export default function Play() {
     savedRef.current = false;
     const cfg = buildConfig(player, LOCATIONS[0]);
     cfg.challenge = true;
+    // Level field: fixed free stock for everyone, no investing, no restocks.
+    cfg.stockAllowance = STOCK.challengeStock;
+    setRestockOffer(null);
     setGame(startState(cfg));
     setOutcome(null);
     setPhase('play');
+  }
+
+  // Bara Stock: hitting zero pauses the round with the restock offer —
+  // continue for an escalating price, or finish with a SOLD OUT win. The
+  // challenge is a level field, so it always finishes.
+  useEffect(() => {
+    if (phase !== 'play' || !game || savedRef.current) return;
+    if (!(game.stockAllowance > 0) || game.stockLeft > 0 || game.roundCapped) return;
+    if (game.challenge) {
+      setGame((g) => ({ ...g, roundCapped: true, soldOut: true }));
+      return;
+    }
+    setPaused(true);
+    setRestockOffer({ cost: nextRestockCost });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, game?.stockLeft, game?.roundCapped]);
+
+  async function handleRestock() {
+    if (!game || restocking) return;
+    setRestocking(true);
+    const r = await buyRoundStock('restock', game.sessionId);
+    setRestocking(false);
+    if (!r) { setStockMsg('Restock failed — not enough dollars?'); return; }
+    setStockMsg('');
+    setNextRestockCost(r.nextRestockCost || 0);
+    setGame((g) => (g ? { ...g, stockLeft: g.stockLeft + (r.added || 0), stockAllowance: (g.stockAllowance || 0) + (r.added || 0) } : g));
+    setRestockOffer(null);
+    setPaused(false);
+  }
+
+  function handleFinishSoldOut() {
+    setRestockOffer(null);
+    setPaused(false);
+    setGame((g) => (g ? { ...g, roundCapped: true, soldOut: true } : g));
   }
 
   function handleExitRound() {
@@ -340,8 +417,12 @@ export default function Play() {
         let served = 1, perfect = 1;
         if (g.doubleServe) { coins *= 2; xp *= 2; served += 1; perfect += 1; }
         coins *= (g.prepSpeedMult || 1);
+        // Bara Stock: each double sold consumes stock (Double Trouble burns
+        // two per tap). Hitting zero pauses for the restock offer (effect).
+        const stockLeft = g.stockAllowance > 0 ? Math.max(0, g.stockLeft - served) : g.stockLeft;
         return {
           ...g,
+          stockLeft,
           prepBoard: [],
           autoIngredient: g.autoIngredient - autoUsed,
           customers: g.customers.filter((x) => x.id !== customerId),
@@ -385,18 +466,59 @@ export default function Play() {
         <h1 className="text-2xl font-extrabold text-foreground">Service Round</h1>
         <TrinidadMap value={locId} onChange={(id) => setLocId(Number(id))} businessTier={player.businessTier} />
 
+        {/* Bara Stock: free base by vendor rank + optional crate investment.
+            Bought crates are charged up-front and don't keep — quitting
+            forfeits them. */}
+        {(() => {
+          const rank = stockRank(player.businessTier);
+          const base = STOCK.baseByRank[rank];
+          const maxCrates = STOCK.maxCratesByRank[rank];
+          const price = STOCK.cratePriceByRank[rank];
+          const cost = crates * price;
+          const afford = (player.coins || 0) >= cost;
+          return (
+            <div className="bg-fire-tile rounded-3xl p-4 shadow border border-white/10">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] font-extrabold text-tropic-gold uppercase">Bara Stock</div>
+                <div className="text-xs font-extrabold text-white">
+                  {base + crates * STOCK.crateSize} doubles
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="text-[11px] text-white/60">
+                  {base} free · crates of {STOCK.crateSize} at {price.toLocaleString()} <CoinIcon className="w-3 h-3 inline-block" /> each
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setCrates((c) => Math.max(0, c - 1))}
+                    className="w-8 h-8 rounded-full bg-white/10 text-white font-extrabold active:scale-90 no-tap-highlight">−</button>
+                  <span className="w-6 text-center font-extrabold text-tropic-gold">{crates}</span>
+                  <button type="button" onClick={() => setCrates((c) => Math.min(maxCrates, c + 1))}
+                    className="w-8 h-8 rounded-full bg-white/10 text-white font-extrabold active:scale-90 no-tap-highlight">+</button>
+                </div>
+              </div>
+              {crates > 0 && (
+                <div className={`mt-1.5 text-[11px] font-bold ${afford ? 'text-white/70' : 'text-tropic-coral'}`}>
+                  Invest {cost.toLocaleString()} <CoinIcon className="w-3 h-3 inline-block" /> — non-refundable, sells this round only{afford ? '' : ' · not enough dollars'}
+                </div>
+              )}
+              {stockMsg && <div className="mt-1.5 text-[11px] font-bold text-tropic-coral">{stockMsg}</div>}
+            </div>
+          );
+        })()}
+
         <button
           onClick={handleStart}
-          className="w-full bg-gradient-to-r from-tropic-magenta to-tropic-sea font-extrabold text-white py-3.5 rounded-2xl shadow-xl active:scale-95 transition flex items-center justify-center gap-2"
+          disabled={starting}
+          className="w-full bg-gradient-to-r from-tropic-magenta to-tropic-sea font-extrabold text-white py-3.5 rounded-2xl shadow-xl active:scale-95 transition flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          <PlayIcon size={20} /> Begin Service
+          <PlayIcon size={20} /> {starting ? 'Buying stock…' : 'Begin Service'}
         </button>
 
         {/* Today's Rush — the daily challenge. Same customers for every player. */}
         <div className="bg-fire-tile rounded-3xl p-4 shadow border border-tropic-gold/40">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] font-extrabold text-tropic-gold uppercase">⚡ Today's Rush</div>
+              <div className="text-[11px] font-extrabold text-tropic-gold uppercase inline-flex items-center gap-1"><IconBolt size={13} /> Today's Rush</div>
               <div className="text-xs text-white/70 mt-0.5">
                 Same customers for everyone, one try a day. Top the daily board!
               </div>
@@ -450,6 +572,11 @@ export default function Play() {
                 <Heart key={i} size={14} className={i < g.mistakes ? 'text-tropic-coral/25' : 'text-tropic-coral fill-tropic-coral'} />
               ))}
             </span>
+            {g.stockAllowance > 0 && (
+              <span className={`ml-1.5 inline-flex items-center gap-1 text-[11px] font-extrabold rounded-full px-2 py-0.5 ${g.stockLeft <= 25 ? 'bg-tropic-coral/25 text-tropic-coral' : 'bg-white/10 text-tropic-gold'}`}>
+                <IconPlate size={12} /> {g.stockLeft}
+              </span>
+            )}
             <span className="flex items-center gap-1 text-tropic-coral"><Flame size={14} /> Combo {g.combo}x</span>
             <span className="flex items-center gap-1 text-tropic-gold"><CoinIcon className="w-4 h-4" /> {Math.round(g.coinsEarned)}</span>
             <span className="flex items-center gap-1 text-tropic-sea"><Gem size={14} /> {Math.round(g.gemsEarned)}</span>
@@ -472,11 +599,42 @@ export default function Play() {
           </div>
         </div>
 
+        {/* SOLD OUT / restock sheet: stock hit zero — continue for an
+            escalating price or bank the round with the sellout bonus. */}
+        {paused && restockOffer && (
+          <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center gap-4 px-8">
+            <IconPlate size={56} />
+            <div className="text-2xl font-extrabold text-tropic-gold tracking-widest">SOLD OUT!</div>
+            <p className="text-xs text-white/60 text-center max-w-xs">
+              Every double gone! Restock {'—'} prices climb each time {'—'} or finish now and take the Sold Out bonus.
+            </p>
+            <button
+              type="button"
+              onClick={handleRestock}
+              disabled={restocking || (player?.coins || 0) < nextRestockCost}
+              className="mt-1 w-full max-w-xs bg-gradient-to-r from-tropic-magenta to-tropic-sea text-white font-extrabold py-3.5 rounded-full shadow-xl active:scale-95 transition disabled:opacity-50 no-tap-highlight flex items-center justify-center gap-1.5"
+            >
+              {restocking ? 'Restocking…' : (<><span>Restock</span> {nextRestockCost.toLocaleString()} <CoinIcon className="w-4 h-4 inline-block" /></>)}
+            </button>
+            {(player?.coins || 0) < nextRestockCost && (
+              <div className="text-[11px] font-bold text-tropic-coral">Not enough dollars to restock</div>
+            )}
+            {stockMsg && <div className="text-[11px] font-bold text-tropic-coral">{stockMsg}</div>}
+            <button
+              type="button"
+              onClick={handleFinishSoldOut}
+              className="w-full max-w-xs bg-white/10 text-tropic-gold font-extrabold py-3 rounded-full active:scale-95 transition no-tap-highlight"
+            >
+              Finish — SOLD OUT bonus
+            </button>
+          </div>
+        )}
+
         {/* Pause overlay: covers the whole board so orders can't be studied
             while time is frozen — pausing is a break, not a planning tool. */}
-        {paused && (
+        {paused && !restockOffer && (
           <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center gap-4 px-8">
-            <div className="text-5xl">⏸️</div>
+            <Pause size={44} className="text-tropic-gold" />
             <div className="text-2xl font-extrabold text-tropic-gold tracking-widest">PAUSED</div>
             <p className="text-xs text-white/50 text-center">Time is frozen — customers will wait for you.</p>
             <button
@@ -534,7 +692,7 @@ export default function Play() {
             <AlertDialogHeader>
               <AlertDialogTitle>Leave this round?</AlertDialogTitle>
               <AlertDialogDescription>
-                Your current progress — coins, combos, and customers served this round — will not be saved.
+                Your current progress — coins, combos, and customers served this round — will not be saved. Invested bara stock doesn't keep and will be lost.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

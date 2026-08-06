@@ -63,6 +63,33 @@ export const DAILY_REWARDS: DailyReward[] = [
   { day: 7, gems: 20, magicSauce: 'golden_tamarind' },
 ];
 
+// ---- Bara Stock (per-round doubles supply) ----
+// Indexed by vendor rank (business_tier clamped 0..4, same as BUSINESS_TIERS).
+// Mirror in src/lib/game/catalog.js. Prices are server-authoritative.
+export const STOCK = {
+  baseByRank:       [75, 125, 200, 300, 450],
+  cratePriceByRank: [50, 200, 1000, 10000, 100000],
+  crateSize: 25,
+  maxCratesByRank:  [3, 5, 8, 12, 18],
+  restockEscalation: 1.5,   // price multiplier per successive mid-round restock
+  challengeStock: 150,       // Today's Rush: fixed, free, no restocks
+};
+
+export function stockRank(businessTier: number): number {
+  return Math.min(Math.max(Number(businessTier) || 0, 0), STOCK.baseByRank.length - 1);
+}
+
+// Restock bundle = ~25% of base, in whole crates (min 1).
+export function restockBundleCrates(rank: number): number {
+  return Math.max(1, Math.ceil((STOCK.baseByRank[rank] * 0.25) / STOCK.crateSize));
+}
+
+export function restockCost(rank: number, restocksSoFar: number): number {
+  const bundle = restockBundleCrates(rank);
+  return Math.round(bundle * STOCK.cratePriceByRank[rank] *
+    Math.pow(STOCK.restockEscalation, restocksSoFar + 1));
+}
+
 // ---- Achievements ----
 // Mirrors catalog.js ACHIEVEMENTS. `stat` names match the camelCase snapshot
 // keys used by evaluateAchievements below. Every achievement pays BOTH dollars

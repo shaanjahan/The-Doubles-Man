@@ -139,6 +139,26 @@ export const MAGIC_SAUCES = [
 // Mirror of _shared/catalog.ts SAUCE_PRICES — the server is authoritative.
 export const SAUCE_PRICES = { Common: 25, Rare: 45, Epic: 75, Legendary: 125 };
 
+// ---- Bara Stock (mirror of _shared/catalog.ts STOCK — server-priced) ----
+export const STOCK = {
+  baseByRank:       [75, 125, 200, 300, 450],
+  cratePriceByRank: [50, 200, 1000, 10000, 100000],
+  crateSize: 25,
+  maxCratesByRank:  [3, 5, 8, 12, 18],
+  restockEscalation: 1.5,
+  challengeStock: 150,
+};
+export function stockRank(businessTier) {
+  return Math.min(Math.max(Number(businessTier) || 0, 0), STOCK.baseByRank.length - 1);
+}
+export function restockBundleCrates(rank) {
+  return Math.max(1, Math.ceil((STOCK.baseByRank[rank] * 0.25) / STOCK.crateSize));
+}
+export function restockCost(rank, restocksSoFar) {
+  return Math.round(restockBundleCrates(rank) * STOCK.cratePriceByRank[rank] *
+    Math.pow(STOCK.restockEscalation, restocksSoFar + 1));
+}
+
 // Level a vendor reaches each business tier (mirror of the server's LVL_REQS
 // in finalize-round — the server is authoritative for tier advancement).
 // Locations gate on tier, so this maps a location to its unlock level.

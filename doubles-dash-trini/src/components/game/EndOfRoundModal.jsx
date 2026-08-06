@@ -68,7 +68,14 @@ export default function EndOfRoundModal({ outcome, onPlayAgain, onMenu }) {
         <div className="flex justify-center mb-1 animate-[combo-pop_0.5s_ease-out]">
           <MoodIcon className={moodColor} size={48} strokeWidth={2} />
         </div>
-        <h2 className="text-xl font-extrabold text-tropic-gold tracking-wide drop-shadow">SERVICE COMPLETE!</h2>
+        <h2 className="text-xl font-extrabold text-tropic-gold tracking-wide drop-shadow">
+          {outcome.soldOut ? 'SOLD OUT!' : 'SERVICE COMPLETE!'}
+        </h2>
+        {outcome.soldOut && (
+          <div className="mt-1 text-xs font-extrabold text-emerald-400">
+            Every double sold{outcome.soldOutBonusPct > 0 ? ` — +${Math.round(outcome.soldOutBonusPct * 100)}% sellout bonus!` : '!'}
+          </div>
+        )}
         {outcome.levelAfter > outcome.levelBefore && (
           <div className="mt-3">
             <LevelUpCelebration

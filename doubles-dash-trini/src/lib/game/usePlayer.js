@@ -339,6 +339,29 @@ export function usePlayer() {
     }
   }, [applyServerPlayer]);
 
+  // Bara Stock purchases (start-round): pre-round crates ('start') or a
+  // mid-round restock ('restock'). Server-priced and atomic; returns the new
+  // wallet + allowance, or null on failure (caller keeps the round running
+  // on whatever stock remains).
+  const buyRoundStock = useCallback(async (action, sessionId, crates = 0) => {
+    try {
+      const res = await base44.functions.invoke('start-round', { action, sessionId, crates });
+      const data = res?.data;
+      if (!data || data.error) return null;
+      if (typeof data.coins === 'number' && playerRef.current) {
+        // Local-only sync: the server already debited the wallet; coins is
+        // not a client-writable column, so no persist call here.
+        const next = { ...playerRef.current, coins: data.coins };
+        playerRef.current = next;
+        setPlayer(next);
+      }
+      return data;
+    } catch (e) {
+      console.error('buyRoundStock failed:', e);
+      return null;
+    }
+  }, []);
+
   // Direct purchase of one specific sauce for gems (buy-sauce): the server
   // prices it by rarity and ignores any client-supplied cost.
   const buySauce = useCallback(async (sauceId) => {
@@ -402,7 +425,7 @@ export function usePlayer() {
     loading, error, player,
     reload, mutate, persist, applyServerPlayer,
     finalizeRound, manageBusiness, claimDaily, buyUpgrade,
-    toggleEquipSauce, openSaucePack, buySauce,
+    toggleEquipSauce, openSaucePack, buySauce, buyRoundStock,
     setAvatar, completeSetup, completeTutorial, trackInvite,
     newlyUnlocked, clearNewlyUnlocked,
     unlockedLocations, clearUnlockedLocations,

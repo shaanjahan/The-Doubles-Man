@@ -26,7 +26,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
 import { perRoundBonus, businessNetValue } from '../_shared/businesses.ts';
-import { evaluateAchievements, buildDefaultMissions, evaluateMissions } from '../_shared/catalog.ts';
+import { evaluateAchievements, buildDefaultMissions, evaluateMissions, STOCK } from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -157,8 +157,23 @@ serveWithCors(async (req) => {
     // serve is already superhuman sustained for an hour, so the cap stays
     // meaningful against forged short rounds while never touching real play.
     const MIN_SERVE_MS = 700;
-    const baseServes = Math.ceil(elapsedMs / MIN_SERVE_MS) + 2;
-    const reportMax = Math.ceil(baseServes * (doubleServe ? 2 : 1));
+    let baseServes = Math.ceil(elapsedMs / MIN_SERVE_MS) + 2;
+    let reportMax = Math.ceil(baseServes * (doubleServe ? 2 : 1));
+    // Bara Stock: when this round bought stock (start-round registered an
+    // allowance under this sessionId), the allowance IS the exact serve
+    // ceiling — tighter than the speed heuristic. Challenge rounds get the
+    // fixed free challenge stock. Zero-crate normal rounds have no pending
+    // record; the client self-limits to the free base and the speed cap
+    // still bounds forged clients.
+    const pendingStock = (player as any).pending_round_stock;
+    const stockAllowance =
+      body?.challenge === true ? STOCK.challengeStock
+      : (pendingStock && pendingStock.session_id === sessionId) ? Number(pendingStock.allowance) || 0
+      : null;
+    if (stockAllowance != null && stockAllowance > 0) {
+      reportMax = Math.min(reportMax, stockAllowance);
+      baseServes = reportMax;
+    }
     const comboMax = reportMax;
 
     const bestTipPerServe = 3.0 * tipMult * 5 * (1 + comboMax * 0.1);
@@ -173,7 +188,13 @@ serveWithCors(async (req) => {
     const perfectCount = clampInt(body?.perfectCount, 0, servedCount);
     const mistakes = clampInt(body?.mistakes, 0, reportMax);
     const maxCombo = clampInt(body?.maxCombo, 0, comboMax);
-    const coinsEarned = clampInt(body?.coinsEarned, 0, coinsCap);
+    let coinsEarned = clampInt(body?.coinsEarned, 0, coinsCap);
+    // SOLD OUT bonus: emptying the whole stock is a win — +5% coins, +10%
+    // for a clean sellout (zero mistakes). Server-granted so it can't be
+    // forged; the client shows the same numbers from the returned outcome.
+    const soldOut = stockAllowance != null && stockAllowance > 0 && servedCount >= stockAllowance;
+    const soldOutBonusPct = soldOut ? (mistakes === 0 ? 0.10 : 0.05) : 0;
+    if (soldOutBonusPct > 0) coinsEarned = Math.round(coinsEarned * (1 + soldOutBonusPct));
     const gemsEarned = clampInt(body?.gemsEarned, 0, gemsCap);
     const xpEarned = clampInt(body?.xpEarned, 0, xpCap);
 
@@ -392,6 +413,12 @@ serveWithCors(async (req) => {
       }
     }
 
+    // The round consumed its stock allowance — clear the pending record so a
+    // stale allowance can never leak into a later round (non-fatal).
+    if (pendingStock && pendingStock.session_id === sessionId) {
+      try { await admin.from('players').update({ pending_round_stock: null }).eq('user_id', user.id); } catch (_) { /* non-fatal */ }
+    }
+
     return Response.json({
       // `player` is the authoritative final state (round rewards + achievement
       // grants). `outcome` describes the ROUND only, so it keeps referencing the
@@ -405,6 +432,7 @@ serveWithCors(async (req) => {
         xpAfter: newPlayer.xp, xpForNext: xpForLevel(newPlayer.level),
         levelUpCoins, levelUpGems,
         hourlyLimited: !!applied.limited,
+        soldOut, soldOutBonusPct,
       },
       newAchievements: ach.newly,
       completedMissions: missionEval.completed,
