@@ -6,7 +6,7 @@ import React from 'react';
 // highlight stays in sync even when the ingredient is removed elsewhere.
 const STOPS = [
   { id: 'pepper_none',   label: 'None',   letter: 'N', color: '#ffffff', tint: 'bg-white/10' },
-  { id: 'pepper_slight', label: 'Mild',   letter: 'M', color: '#fde047', tint: 'bg-yellow-500/15' },
+  { id: 'pepper_slight', label: 'Slight', letter: 'S', color: '#fde047', tint: 'bg-yellow-500/15' },
   { id: 'pepper_medium', label: 'Medium',  letter: 'M', color: '#fb923c', tint: 'bg-orange-500/15' },
   { id: 'pepper_heavy',  label: 'Hot',    letter: 'H', color: '#ef4444', tint: 'bg-red-500/15' },
 ];
