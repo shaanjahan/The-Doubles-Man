@@ -3,7 +3,7 @@
 // copy in sync, and persists mutations to the Base44 entity automatically.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, supabase } from '@/api/base44Client';
 import {
   ACHIEVEMENTS, LOCATIONS, DAILY_MISSION_POOL, WEEKLY_MISSION_POOL, MONTHLY_MISSION_POOL,
 } from './catalog';
@@ -380,13 +380,22 @@ export function usePlayer() {
     mutate((p) => { p.hasSeenTutorial = true; });
   }, [mutate]);
 
-  const completeSetup = useCallback((name, gender) => {
+  // Vendor names are unique game-wide (case-insensitive, DB-enforced).
+  // Returns false when the name is taken so the setup screen can ask for
+  // another. The RPC check is the friendly layer; the unique index settles
+  // any race. Fails open on network errors — the index is the backstop.
+  const completeSetup = useCallback(async (name, gender) => {
+    try {
+      const { data: available, error } = await supabase.rpc('display_name_available', { p_name: name });
+      if (!error && available === false) return false;
+    } catch { /* fail open — the unique index still protects */ }
     const url = characterUrlByGender(gender);
-    return mutate((p) => {
+    mutate((p) => {
       p.displayName = name;
       p.avatarEmoji = url;
       p.needsSetup = false;
     });
+    return true;
   }, [mutate]);
 
   return {

@@ -11,14 +11,21 @@ export default function CharacterSetup() {
   const [gender, setGender] = useState('male');
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [nameError, setNameError] = useState('');
 
   const trimmed = name.trim();
   const canStart = trimmed.length > 0 && !saving;
 
-  function handleStart() {
+  async function handleStart() {
     if (!canStart) return;
     setSaving(true);
-    completeSetup(trimmed, gender);
+    setNameError('');
+    const ok = await completeSetup(trimmed, gender);
+    if (!ok) {
+      setNameError('That vendor name is taken — try another.');
+      setSaving(false);
+      return;
+    }
     // Layout unmounts this screen once needsSetup flips to false.
   }
 
@@ -65,11 +72,14 @@ export default function CharacterSetup() {
         <div className="text-[11px] uppercase font-extrabold text-tropic-gold tracking-wide mb-2">Vendor Name</div>
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); setNameError(''); }}
           maxLength={20}
           placeholder="e.g. Aunty Mary"
-          className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-foreground font-bold placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary"
+          className={`w-full rounded-2xl border px-4 py-3 text-foreground font-bold placeholder:text-white/40 focus:outline-none focus:ring-2 ${nameError ? 'border-red-400 bg-red-500/10 focus:ring-red-400' : 'border-white/10 bg-white/5 focus:ring-primary'}`}
         />
+        {nameError && (
+          <p className="mt-1.5 text-xs font-bold text-red-400">{nameError}</p>
+        )}
       </div>
 
       <button
