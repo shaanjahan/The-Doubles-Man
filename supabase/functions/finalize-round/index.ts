@@ -148,8 +148,16 @@ serveWithCors(async (req) => {
       }
     }
 
-    const spawnEveryMs = Math.max(800, Math.round(loc.arriveSec * 1000 * spawnMult));
-    const baseServes = Math.ceil(elapsedMs / spawnEveryMs) + 2;
+    // Plausibility ceiling. NOT spawn-rate-derived: the client engine
+    // accumulates "spawn debt" while all slots are full and releases it a
+    // customer per tick once slots free up, so a fast player's throughput is
+    // bounded by SERVE speed, not the base arrival interval — the old
+    // spawn-rate model clamped genuine marathon rounds (a real 1000+ combo
+    // was cut to 894 on launch night). A serve takes several taps; 700ms per
+    // serve is already superhuman sustained for an hour, so the cap stays
+    // meaningful against forged short rounds while never touching real play.
+    const MIN_SERVE_MS = 700;
+    const baseServes = Math.ceil(elapsedMs / MIN_SERVE_MS) + 2;
     const reportMax = Math.ceil(baseServes * (doubleServe ? 2 : 1));
     const comboMax = reportMax;
 
