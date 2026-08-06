@@ -6,7 +6,7 @@ import { IconPepper, IconPlate } from '@/components/game/art/icons';
 // Pepper level → colored letter badge (matches the PepperSlider buttons).
 const PEPPER_BADGE = {
   pepper_none:   { letter: 'N', color: '#ffffff' },
-  pepper_slight: { letter: 'M', color: '#fde047' },
+  pepper_slight: { letter: 'S', color: '#fde047' },
   pepper_medium: { letter: 'M', color: '#fb923c' },
   pepper_heavy:  { letter: 'H', color: '#ef4444' },
 };
