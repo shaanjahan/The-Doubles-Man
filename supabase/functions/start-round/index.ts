@@ -15,6 +15,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
 import { STOCK, stockRank, restockBundleCrates, restockCost } from '../_shared/catalog.ts';
+import { stockBonus } from '../_shared/businesses.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -37,16 +38,19 @@ serveWithCors(async (req) => {
     if (!sessionId) return Response.json({ error: 'Missing sessionId' }, { status: 400 });
 
     const { data: player, error: selErr } = await admin
-      .from('players').select('business_tier, pending_round_stock').eq('user_id', user.id).maybeSingle();
+      .from('players').select('business_tier, businesses, pending_round_stock').eq('user_id', user.id).maybeSingle();
     if (selErr) throw selErr;
     if (!player) return Response.json({ error: 'No player record' }, { status: 404 });
     const rank = stockRank(player.business_tier);
+    // Rank base + owned-business bonus = the free supply this round starts from.
+    const freeBase = STOCK.baseByRank[rank] +
+      stockBonus(Array.isArray(player.businesses) ? player.businesses : []);
 
     if (action === 'start') {
       const crates = Math.min(Math.max(Number(body?.crates) || 0, 0), STOCK.maxCratesByRank[rank]);
       if (crates === 0) return Response.json({ error: 'Zero crates needs no purchase' }, { status: 400 });
       const cost = crates * STOCK.cratePriceByRank[rank];
-      const allowance = STOCK.baseByRank[rank] + crates * STOCK.crateSize;
+      const allowance = freeBase + crates * STOCK.crateSize;
       const { data: applied, error: rpcErr } = await admin.rpc('round_stock_start', {
         p_user_id: user.id, p_session_id: sessionId, p_allowance: allowance, p_cost: cost,
       });
@@ -78,7 +82,7 @@ serveWithCors(async (req) => {
       } else {
         const r = await admin.rpc('round_stock_start', {
           p_user_id: user.id, p_session_id: sessionId,
-          p_allowance: STOCK.baseByRank[rank] + add, p_cost: cost,
+          p_allowance: freeBase + add, p_cost: cost,
         });
         if (r.error) throw r.error;
         applied = r.data;

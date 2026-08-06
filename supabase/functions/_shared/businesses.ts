@@ -40,6 +40,19 @@ export function getUnit(tier: number): BusinessUnit | undefined {
   return BUSINESS_UNITS.find((b) => b.tier === tier);
 }
 
+// Bara Stock bonus: every owned business copy raises the round's doubles
+// supply — the empire feeds the stall. Keyed by unit tier id. Mirror in
+// src/lib/game/catalog.js.
+export const STOCK_PER_UNIT: Record<number, number> = { 0: 5, 1: 12, 3: 30, 5: 80, 6: 220 };
+
+export function stockBonus(businesses: any[] = []): number {
+  let total = 0;
+  for (const b of businesses || []) {
+    total += (STOCK_PER_UNIT[b?.tier] || 0) * Math.max(0, Math.floor(b?.count || 0));
+  }
+  return total;
+}
+
 // Per-collection ceiling = IDLE_CAP_PCT of the fleet's invested value (the
 // exact businessNetValue the Empire Value board ranks) — "your stalls hold up
 // to 5% of your empire's value". Every purchase raises the ceiling in direct

@@ -151,6 +151,15 @@ export const STOCK = {
 export function stockRank(businessTier) {
   return Math.min(Math.max(Number(businessTier) || 0, 0), STOCK.baseByRank.length - 1);
 }
+// Every owned business copy adds round stock (mirror of _shared/businesses.ts).
+export const STOCK_PER_UNIT = { 0: 5, 1: 12, 3: 30, 5: 80, 6: 220 };
+export function stockBonus(businesses = []) {
+  let total = 0;
+  for (const b of businesses || []) {
+    total += (STOCK_PER_UNIT[b?.tier] || 0) * Math.max(0, Math.floor(b?.count || 0));
+  }
+  return total;
+}
 export function restockBundleCrates(rank) {
   return Math.max(1, Math.ceil((STOCK.baseByRank[rank] * 0.25) / STOCK.crateSize));
 }

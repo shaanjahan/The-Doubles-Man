@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LOCATIONS, MAGIC_SAUCES, BUSINESS_TIERS,
-  STOCK, stockRank, restockCost,
+  STOCK, stockRank, stockBonus, restockCost,
 } from '@/lib/game/catalog';
 import { spawnCustomer, classifyServe, challengeRng } from '@/lib/game/engine';
 import { sfx, unlockAudio } from '@/lib/game/useSound';
@@ -275,7 +275,7 @@ export default function Play() {
     if (loc.unlockTier > (player.businessTier || 0)) loc = LOCATIONS[0];
     const rank = stockRank(player.businessTier);
     const sessionId = makeSessionId();
-    let allowance = STOCK.baseByRank[rank];
+    let allowance = STOCK.baseByRank[rank] + stockBonus(player.businesses);
     // Crates are charged server-side BEFORE the round exists (non-refundable
     // once bought). Zero crates skips the network entirely — the free base
     // stock is the frictionless default.
@@ -471,7 +471,8 @@ export default function Play() {
             forfeits them. */}
         {(() => {
           const rank = stockRank(player.businessTier);
-          const base = STOCK.baseByRank[rank];
+          const bonus = stockBonus(player.businesses);
+          const base = STOCK.baseByRank[rank] + bonus;
           const maxCrates = STOCK.maxCratesByRank[rank];
           const price = STOCK.cratePriceByRank[rank];
           const cost = crates * price;
@@ -486,7 +487,7 @@ export default function Play() {
               </div>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <div className="text-[11px] text-white/60">
-                  {base} free · crates of {STOCK.crateSize} at {price.toLocaleString()} <CoinIcon className="w-3 h-3 inline-block" /> each
+                  {base} free{bonus > 0 ? ` (+${bonus} from your businesses)` : ''} · crates of {STOCK.crateSize} at {price.toLocaleString()} <CoinIcon className="w-3 h-3 inline-block" /> each
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => setCrates((c) => Math.max(0, c - 1))}

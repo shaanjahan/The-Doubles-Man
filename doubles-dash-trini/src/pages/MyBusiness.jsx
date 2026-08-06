@@ -3,7 +3,7 @@ import { Image } from '@/components/ui/image';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import {
   BUSINESS_TIERS, businessCostFor, businessIncomePerMin, collectableCoins,
-  businessPerRoundBonus, MAX_IDLE_MINUTES, fleetIdleCap,
+  businessPerRoundBonus, MAX_IDLE_MINUTES, fleetIdleCap, STOCK_PER_UNIT,
 } from '@/lib/game/catalog';
 import CoinIcon from '@/components/CoinIcon';
 import { IconBolt, IconClock } from '@/components/game/art/icons';
@@ -138,7 +138,7 @@ export default function MyBusiness() {
                   {owned > 0 && <span className="text-[10px] font-bold px-1.5 rounded-full bg-tropic-sea text-white">×{owned}</span>}
                 </div>
                 <div className="text-[11px] text-slate-600">
-                  {unlocked ? `Each earns ${unitIncome.toLocaleString()}/min idle — up to ${(unitIncome * MAX_IDLE_MINUTES).toLocaleString()}/day · +${biz.perRound} per round` : `Unlocks at Level ${UNLOCK_LEVEL[biz.id] ?? '?'}`}
+                  {unlocked ? `Each earns ${unitIncome.toLocaleString()}/min idle — up to ${(unitIncome * MAX_IDLE_MINUTES).toLocaleString()}/day · +${biz.perRound} per round · +${STOCK_PER_UNIT[biz.id] || 0} bara stock` : `Unlocks at Level ${UNLOCK_LEVEL[biz.id] ?? '?'}`}
                 </div>
                 {owned > 0 && (
                   <div className="text-[10px] text-slate-500 mt-0.5">Owned income: {(unitIncome * owned).toLocaleString()}/min</div>
