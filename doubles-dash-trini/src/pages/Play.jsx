@@ -78,8 +78,10 @@ function buildConfig(player, loc) {
 }
 
 // UTC day key/seed for Today's Rush — must match the server's UTC date gate.
-const todayUTC = () => new Date().toISOString().slice(0, 10);
-const todaySeed = () => Number(todayUTC().replace(/-/g, ''));
+// Game days run on Trinidad time (fixed UTC-4, no DST) — the daily challenge
+// and boards flip at midnight LOCAL, not 8 PM. Mirrors the server functions.
+const todayTrini = () => new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+const todaySeed = () => Number(todayTrini().replace(/-/g, ''));
 
 function startState(cfg) {
   return {
@@ -263,7 +265,7 @@ export default function Play() {
   // shared customer sequence plays out on a level field (your upgrades still
   // count — "same rush, your build"). The server is the real gate; this local
   // check just prevents a wasted round.
-  const challengePlayed = (player?.lastChallengeDay || '') === todayUTC();
+  const challengePlayed = (player?.lastChallengeDay || '') === todayTrini();
   function handleStartChallenge() {
     if (!player || challengePlayed) return;
     unlockAudio();

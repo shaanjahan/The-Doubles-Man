@@ -29,10 +29,12 @@ const PERIODS = [
   { id: 'alltime', label: 'All Time' },
 ];
 
-// Current board key for a period, in UTC — MUST mirror the server's
-// leaderboard_upsert_best ('YYYY-MM-DD' / ISO 'IYYY-"W"IW' / 'YYYY-MM').
-// A new key is what "resets" a board; nothing is ever wiped.
-function periodKeyFor(period, d = new Date()) {
+// Current board key for a period, in TRINIDAD time (America/Port_of_Spain,
+// fixed UTC-4, no DST) — MUST mirror the server's board functions
+// ('YYYY-MM-DD' / ISO 'IYYY-"W"IW' / 'YYYY-MM'). Boards flip at midnight
+// local, and a new key is what "resets" a board; nothing is ever wiped.
+function periodKeyFor(period, now = new Date()) {
+  const d = new Date(now.getTime() - 4 * 3600 * 1000);
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
   const day = String(d.getUTCDate()).padStart(2, '0');

@@ -279,7 +279,8 @@ serveWithCors(async (req) => {
     // Best-effort like the leaderboard write — never fatal to the round.
     if (body?.challenge === true) {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        // Trinidad day (fixed UTC-4) — matches the board keys and the client.
+        const today = new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
         const { data: claimed, error: claimErr } = await admin
           .from('players')
           .update({ last_challenge_day: today })
