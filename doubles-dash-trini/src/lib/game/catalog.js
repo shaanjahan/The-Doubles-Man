@@ -379,19 +379,26 @@ export const SAUCE_PACK_ODDS = [
 ];
 
 export const STORE_PRODUCTS = [
-  // Coin pack sizing: priced as TIME SAVED against the tier-scaled hourly cap
-  // (see finalize_round_apply), not as early-game token amounts — $4.99 skips
-  // roughly a third of a day of late-game grind. Amounts must stay in sync with
-  // supabase/functions/_shared/purchaseProducts.ts (the server grant table).
-  // coin_small / coin_medium keep their ORIGINAL amounts — these two were
-  // submitted to Apple review with these values; displayed/granted amounts
-  // must match that submission. Do not retune without resubmitting.
-  { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 1000 },
-  { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 6000, bonus: 500 },
-  { id: 'coin_large',   kind: 'coin_pack',  name: 'Rich Man Flex',     emoji: '🏦', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 9.99,  amount: 74000, bonus: 6000 },
-  { id: 'gem_small',    kind: 'gem_pack',   name: 'Mother in Law Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 1.99,  amount: 25 },
-  { id: 'gem_medium',   kind: 'gem_pack',   name: 'Side Man Gift',      emoji: '💎', image: '/game/622437699_generated_image.webp', price: 4.99,  amount: 75, bonus: 10 },
-  { id: 'gem_large',    kind: 'gem_pack',   name: 'Rich Gyal Vibes',    emoji: '👑', image: '/game/622437699_generated_image.webp', price: 19.99, amount: 350, bonus: 80 },
+  // Amounts must stay in sync with supabase/functions/_shared/purchaseProducts.ts
+  // (the server grant table — apple-iap-verify grants from there, never from
+  // here) AND with each product's App Store Connect metadata. Retuned + big
+  // tiers added 2026-08-07 (owner-approved ladder). New product ids must exist
+  // in App Store Connect before purchases succeed.
+  { id: 'coin_small',   kind: 'coin_pack',  name: 'Money for Waste Man',     emoji: '🪙', price: 0.99,  amount: 10000 },
+  { id: 'coin_medium',  kind: 'coin_pack',  name: 'Side Man Money',     emoji: '💰', image: '/game/bbf6282e0_925FDC18-3429-4D33-A88E-F883A1531BF9.webp', price: 4.99,  amount: 50000 },
+  { id: 'coin_large',   kind: 'coin_pack',  name: 'Rich Man Flex',     emoji: '🏦', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 9.99,  amount: 100000 },
+  { id: 'coin_xl',      kind: 'coin_pack',  name: 'Meh Fadda Money',   emoji: '💰', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 19.99, amount: 1000000 },
+  { id: 'coin_xxl',     kind: 'coin_pack',  name: 'Meh Fadda New Wife Bribe', emoji: '💰', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 29.99, amount: 10000000 },
+  { id: 'coin_xxxl',    kind: 'coin_pack',  name: 'Nanny and Nana Inheritance', emoji: '💰', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 49.99, amount: 100000000 },
+  { id: 'coin_max',     kind: 'coin_pack',  name: 'Sold Meh Grand Fadda Land', emoji: '💰', image: '/game/d296054f0_BE017B94-8A35-48EB-8545-3807BA09F364.webp', price: 99.99, amount: 1000000000 },
+  { id: 'gem_small',    kind: 'gem_pack',   name: 'Mother in Law Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 1.99,  amount: 75 },
+  { id: 'gem_medium',   kind: 'gem_pack',   name: 'Side Man Gift',      emoji: '💎', image: '/game/622437699_generated_image.webp', price: 4.99,  amount: 175, bonus: 25 },
+  { id: 'gem_large',    kind: 'gem_pack',   name: 'Rich Gyal Vibes',    emoji: '👑', image: '/game/622437699_generated_image.webp', price: 19.99, amount: 500 },
+  { id: 'gem_xl',       kind: 'gem_pack',   name: 'Rich Gyal Boyfriend Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 29.99, amount: 1000, bonus: 150 },
+  { id: 'gem_xxl',      kind: 'gem_pack',   name: 'Spicy Tanty Lux',    emoji: '💎', image: '/game/622437699_generated_image.webp', price: 39.99, amount: 2000, bonus: 300 },
+  { id: 'gem_xxxl',     kind: 'gem_pack',   name: 'Tanty Boyfriend Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 59.99, amount: 3500, bonus: 600 },
+  { id: 'gem_xxxxl',    kind: 'gem_pack',   name: 'Tanty Second Husband Gift', emoji: '💎', image: '/game/622437699_generated_image.webp', price: 79.99, amount: 5000 },
+  { id: 'gem_max',      kind: 'gem_pack',   name: 'Tanty Ex Ex Husband Gift', emoji: '👑', image: '/game/622437699_generated_image.webp', price: 99.99, amount: 10000, bonus: 2000 },
   { id: 'sauce_pack',   kind: 'sauce_pack', name: 'Mystery Sauce Pack', emoji: '🎁', image: '/game/18ce2b14d_60AF9741-63B8-4711-AD8C-8FDF51554E73.webp', price: 3.99,  amount: 3 },
   { id: 'starter',      kind: 'bundle',     name: 'Yuh Nanny Will Bundle',    emoji: '🥡', image: '/game/1e6f68c9d_DCE93FB1-F6D4-4190-A66E-C7BE4E20E7C7.webp', price: 4.99,  amount: 0, bundle: { coins: 3000, gems: 15, magicSauce: 'turbo_sauce' } },
   { id: 'vip',          kind: 'vip',        name: 'VIP Vendor Pass',   emoji: '👑', price: 4.99,  amount: 0 },
