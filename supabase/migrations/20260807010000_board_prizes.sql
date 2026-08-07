@@ -172,6 +172,10 @@ as $$
   limit 1;
 $$;
 
+-- Functions default to EXECUTE for PUBLIC — revoke so only signed-in players
+-- (and the definer paths) can read the crown. (Tightened post-ship after an
+-- anon-key probe showed the default grant leaking through.)
+revoke all on function public.current_crown() from public, anon;
 grant execute on function public.current_crown() to authenticated;
 
 -- Nightly award pass at 00:10 Trinidad time (04:10 UTC — POS is fixed UTC-4,
