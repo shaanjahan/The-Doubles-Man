@@ -385,3 +385,12 @@ export function tierByIndex(businessTier) {
   const i = Math.min(Math.max(Number(businessTier) || 0, 0), BUSINESS_TIERS.length - 1);
   return BUSINESS_TIERS[i];
 }
+
+// Board prizes — mirror of award_board_prizes() in the board_prizes migration.
+// Paid server-side at each Trinidad-midnight rollover (top 3 per category);
+// this mirror only renders the "what's at stake" strip on the Leaderboard.
+export const BOARD_PRIZES = {
+  daily:   { cash: [250000, 100000, 50000],   gems: [50, 25, 10] },
+  weekly:  { cash: [450000, 300000, 150000],  gems: [125, 100, 75] },
+  monthly: { cash: [2000000, 500000, 250000], gems: [250, 125, 100] },
+};

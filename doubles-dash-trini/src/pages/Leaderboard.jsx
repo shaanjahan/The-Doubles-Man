@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { useRefreshHandler } from '@/lib/game/RefreshContext';
-import { base44 } from '@/api/base44Client';
+import { base44, supabase } from '@/api/base44Client';
 import PlayerAvatar from '@/components/PlayerAvatar';
 import ShareStories from '@/components/ShareStories';
-import { tierByIndex } from '@/lib/game/catalog';
-import { IconTrophy, IconBell, IconFlame, IconMedal, IconCashStack, IconStorefront, IconBolt } from '@/components/game/art/icons';
+import GemIcon from '@/components/GemIcon';
+import { tierByIndex, BOARD_PRIZES } from '@/lib/game/catalog';
+import { IconTrophy, IconBell, IconFlame, IconMedal, IconCashStack, IconStorefront, IconBolt, IconCrown } from '@/components/game/art/icons';
 
 const CATEGORIES = [
   { id: 'round_score', label: 'Best Round', Icon: IconTrophy },
@@ -52,6 +53,16 @@ function periodKeyFor(period, now = new Date()) {
   return ''; // alltime
 }
 
+// When each period's podium gets paid (award_finished_boards cron, midnight
+// America/Port_of_Spain). Amounts render from the BOARD_PRIZES mirror.
+const PAYOUT_COPY = {
+  daily: 'Daily prizes — paid nightly at midnight (Trini time)',
+  weekly: 'Weekly prizes — paid Sunday night at midnight',
+  monthly: 'Monthly prizes — paid at month end',
+};
+const MEDAL_TONES = ['gold', 'silver', 'bronze'];
+const fmtPrize = (n) => (n >= 1e6 ? `${n / 1e6}M` : `${n / 1e3}K`);
+
 const EMPTY_COPY = {
   daily: 'No entries yet today — be the first vendor on the board!',
   weekly: 'No entries yet this week — be the first vendor on the board!',
@@ -65,6 +76,16 @@ export default function Leaderboard() {
   const [cat, setCat] = useState('round_score');
   const [period, setPeriod] = useState('alltime');
   const [loading, setLoading] = useState(true);
+  // Reigning Vendor of the Week: last weekly Best Round #1 (current_crown RPC).
+  const [crown, setCrown] = useState(null);
+
+  useEffect(() => {
+    let on = true;
+    supabase.rpc('current_crown')
+      .then(({ data }) => { if (on && data?.length) setCrown(data[0]); })
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
 
   // Fetch the selected board on the server (filter + sort by score desc) so
   // combo entries (small scores) aren't crowded out of a global top-N window by
@@ -132,6 +153,27 @@ export default function Leaderboard() {
         ))}
       </div>
 
+      {effectivePeriod !== 'alltime' && BOARD_PRIZES[effectivePeriod] && (
+        <div className="bg-white/10 border border-white/15 rounded-2xl px-3 py-2 space-y-1">
+          <div className="text-[10px] uppercase font-extrabold text-white/60 tracking-wide">
+            {PAYOUT_COPY[effectivePeriod]}
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 items-center">
+            {MEDAL_TONES.map((tone, i) => (
+              <span key={tone} className="flex items-center gap-1 text-[11px] font-extrabold text-white">
+                <IconMedal size={14} tone={tone} /> ${fmtPrize(BOARD_PRIZES[effectivePeriod].cash[i])} + {BOARD_PRIZES[effectivePeriod].gems[i]}
+                <GemIcon className="w-3 h-3" />
+              </span>
+            ))}
+            {effectivePeriod === 'weekly' && (
+              <span className="flex items-center gap-1 text-[11px] font-extrabold text-tropic-gold">
+                <IconCrown size={14} /> Best Round #1 wears the crown
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <section className="bg-white rounded-3xl shadow border border-amber-100 overflow-hidden">
         {loading ? (
           <div className="p-5 text-sm text-slate-500">Loading champions…</div>
@@ -151,7 +193,10 @@ export default function Leaderboard() {
                 <div className="w-7 font-bold text-slate-400 text-sm flex justify-center">{medalTone ? <IconMedal size={20} tone={medalTone} /> : i + 1}</div>
                 <PlayerAvatar avatarEmoji={e.avatarEmoji} sizeClass="w-8 h-8" emojiClass="text-lg" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-slate-800 truncate">{e.displayName}{mine ? ' (you)' : ''}</div>
+                  <div className="font-bold text-sm text-slate-800 flex items-center gap-1 min-w-0">
+                    <span className="truncate">{e.displayName}{mine ? ' (you)' : ''}</span>
+                    {crown && e.ownerId === crown.owner_id && <IconCrown size={13} className="shrink-0" />}
+                  </div>
                   <div className="text-[10px] text-slate-500">Lvl {e.level || 1}</div>
                 </div>
                 <div className="font-extrabold text-amber-700">{(e.score || 0).toLocaleString()}</div>
