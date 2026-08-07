@@ -8,6 +8,7 @@ import TopHud from './TopHud';
 import AchievementToast from './AchievementToast';
 import LocationUnlockToast from './LocationUnlockToast';
 import PrizeCelebration from './PrizeCelebration';
+import AnnouncementModal from './AnnouncementModal';
 import CharacterSetup from './CharacterSetup';
 import { PlayerProvider, usePlayerState } from '@/lib/game/PlayerContext';
 import { MusicProvider } from '@/lib/game/MusicContext';
@@ -122,6 +123,7 @@ function LayoutShell() {
       <AchievementToast />
       <LocationUnlockToast />
       <PrizeCelebration />
+      <AnnouncementModal />
     </div>
   );
 }
