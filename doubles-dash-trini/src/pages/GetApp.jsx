@@ -11,6 +11,21 @@ import { TriniFlag } from '@/components/game/art/icons';
 // native shell redirects it to /home. Country-neutral store URL so every
 // visitor lands on their own storefront.
 const APP_STORE_URL = 'https://apps.apple.com/app/the-doubles-man/id6794140621';
+// In-app browsers (Instagram, TikTok, Facebook) render apps.apple.com as a web
+// page instead of opening the App Store. The itms-apps:// scheme is passed to
+// the OS and launches the App Store app directly — the standard escape hatch.
+const APP_STORE_SCHEME = 'itms-apps://apps.apple.com/app/the-doubles-man/id6794140621';
+
+function openAppStore(e) {
+  const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  if (!isApple) return; // Android/desktop: let the normal https link proceed
+  e.preventDefault();
+  window.location.href = APP_STORE_SCHEME;
+  // If the scheme was blocked (page still visible), fall back to the web URL.
+  setTimeout(() => {
+    if (!document.hidden) window.location.href = APP_STORE_URL;
+  }, 1500);
+}
 
 export default function GetApp() {
   useEffect(() => {
@@ -53,6 +68,7 @@ export default function GetApp() {
 
       <a
         href={APP_STORE_URL}
+        onClick={openAppStore}
         className="relative mt-8 inline-flex items-center gap-3 bg-white text-black rounded-2xl px-7 py-4 shadow-2xl hover:scale-105 active:scale-95 transition"
       >
         <AppleIcon className="w-8 h-8" color="#000000" />
