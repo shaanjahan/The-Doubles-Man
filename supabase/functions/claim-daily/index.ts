@@ -17,7 +17,10 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serveWithCors } from '../_shared/cors.ts';
-import { DAILY_REWARDS, evaluateAchievements } from '../_shared/catalog.ts';
+import {
+  DAILY_REWARDS, STREAK_LOOP_START, STREAK_REPAIR_COST, STREAK_REPAIR_MIN,
+  evaluateAchievements,
+} from '../_shared/catalog.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -47,16 +50,28 @@ serveWithCors(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    // Optional body: { repair: true } spends STREAK_REPAIR_COST gems to keep a
+    // streak across exactly one missed day (server re-validates everything).
+    const body = await req.json().catch(() => ({}));
+    const repair = body?.repair === true;
+
     // 1. Apply the claim atomically.
     const { data: claimed, error: rpcErr } = await admin.rpc('daily_claim_apply', {
       p_user_id: user.id,
       p_rewards: DAILY_REWARDS,
       p_max_day: DAILY_REWARDS.length,
+      p_loop_start: STREAK_LOOP_START,
+      p_repair: repair,
+      p_repair_cost: STREAK_REPAIR_COST,
+      p_repair_min: STREAK_REPAIR_MIN,
     });
     if (rpcErr) throw rpcErr;
     if (claimed?.error === 'no_player') return Response.json({ error: 'No player record' }, { status: 404 });
     if (claimed?.error === 'already_claimed') {
       return Response.json({ error: 'Already claimed today', alreadyClaimed: true }, { status: 409 });
+    }
+    if (claimed?.error === 'repair_unavailable' || claimed?.error === 'not_enough_gems') {
+      return Response.json({ error: claimed.error }, { status: 409 });
     }
     if (!claimed || claimed.error) {
       return Response.json({ error: claimed?.error || 'claim failed' }, { status: 500 });
@@ -86,6 +101,7 @@ serveWithCors(async (req) => {
       reward: claimed.reward,
       streak: claimed.streak,
       day: claimed.day,
+      repaired: claimed.repaired === true,
       newAchievements: ach.newly,
     });
   } catch (error) {

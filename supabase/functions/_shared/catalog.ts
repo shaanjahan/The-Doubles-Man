@@ -45,7 +45,15 @@ export function upgradeCost(upg: Upgrade, currentLevel: number): number {
 
 // ---- Daily rewards (claimDaily) ----
 // Mirrors catalog.js DAILY_REWARDS (the game-hook / Player-model table — NOT
-// the dead claim-daily-reward/PlayerProfile table). Streak caps at day 7.
+// the dead claim-daily-reward/PlayerProfile table).
+//
+// 30-day escalating streak calendar (owner-approved 2026-08-07). Milestones at
+// 7/14/21/30; day 30 caps with the Legendary. Past day 30 the STREAK keeps
+// counting (achievements/bragging) but the reward day loops 24..30 forever —
+// daily_claim_apply computes: day = streak <= 30 ? streak
+//                                  : 24 + ((streak - 24) % 7).
+// A missed single day can be repaired for STREAK_REPAIR_COST gems when the
+// streak was at least STREAK_REPAIR_MIN (server-enforced in daily_claim_apply).
 export interface DailyReward {
   day: number;
   coins?: number;
@@ -54,14 +62,40 @@ export interface DailyReward {
   magicSauce?: string;
 }
 export const DAILY_REWARDS: DailyReward[] = [
-  { day: 1, coins: 100 },
-  { day: 2, coins: 150 },
-  { day: 3, coins: 200, xp: 30 },
-  { day: 4, gems: 5 },
-  { day: 5, coins: 300, xp: 50 },
-  { day: 6, magicSauce: 'lucky_sauce' },
-  { day: 7, gems: 20, magicSauce: 'golden_tamarind' },
+  { day: 1,  coins: 100 },
+  { day: 2,  coins: 150 },
+  { day: 3,  coins: 200, xp: 30 },
+  { day: 4,  gems: 5 },
+  { day: 5,  coins: 300, xp: 50 },
+  { day: 6,  magicSauce: 'lucky_sauce' },
+  { day: 7,  gems: 25, magicSauce: 'golden_tamarind' },
+  { day: 8,  coins: 500 },
+  { day: 9,  gems: 10 },
+  { day: 10, coins: 750, xp: 75 },
+  { day: 11, magicSauce: 'pepper_fairy' },
+  { day: 12, coins: 1000 },
+  { day: 13, gems: 15 },
+  { day: 14, gems: 40, magicSauce: 'carnival_sauce' },
+  { day: 15, coins: 1500 },
+  { day: 16, gems: 15 },
+  { day: 17, coins: 2000, xp: 100 },
+  { day: 18, magicSauce: 'shadow_beni_spirit' },
+  { day: 19, coins: 3000 },
+  { day: 20, gems: 20 },
+  { day: 21, gems: 60, magicSauce: 'turbo_sauce' },
+  { day: 22, coins: 4000 },
+  { day: 23, gems: 25 },
+  { day: 24, coins: 5000, xp: 150 },
+  { day: 25, gems: 30 },
+  { day: 26, magicSauce: 'ghost_pepper' },
+  { day: 27, coins: 7500 },
+  { day: 28, gems: 40 },
+  { day: 29, coins: 10000 },
+  { day: 30, gems: 100, magicSauce: 'double_trouble' },
 ];
+export const STREAK_LOOP_START = 24;  // after day 30, rewards loop 24..30
+export const STREAK_REPAIR_COST = 25; // gems, one missed day only
+export const STREAK_REPAIR_MIN = 3;   // streaks shorter than this just restart
 
 // ---- Bara Stock (per-round doubles supply) ----
 // Indexed by vendor rank (business_tier clamped 0..4, same as BUSINESS_TIERS).

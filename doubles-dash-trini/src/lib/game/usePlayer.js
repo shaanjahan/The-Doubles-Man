@@ -281,19 +281,24 @@ export function usePlayer() {
 
   // Daily login claim — server-authoritative (claim-daily). Returns
   // { streak, reward } for the modal, or null if already claimed today.
-  const claimDaily = useCallback(async () => {
+  const claimDaily = useCallback(async (opts = {}) => {
     try {
-      const res = await base44.functions.invoke('claim-daily', {});
+      // opts.repair spends STREAK_REPAIR_COST gems to bridge exactly one
+      // missed day (claim-daily re-validates the gap, streak and balance).
+      const res = await base44.functions.invoke('claim-daily', { repair: opts.repair === true });
       const data = res?.data;
       if (data?.player) applyServerPlayer(data.player);
       if (data?.newAchievements?.length) {
         setNewlyUnlocked(data.newAchievements.map((id) => ACHIEVEMENTS.find((a) => a.id === id)).filter(Boolean));
       }
-      return (data?.reward != null) ? { streak: data.streak, reward: data.reward } : null;
+      return (data?.reward != null)
+        ? { streak: data.streak, reward: data.reward, repaired: data.repaired === true }
+        : null;
     } catch (e) {
-      // A 409 "already claimed today" is expected; treat any failure as no grant.
+      // Expected 409s ("Already claimed today" / repair_unavailable /
+      // not_enough_gems) surface via error so the modal can react.
       console.error('claimDaily failed:', e);
-      return null;
+      return { error: e?.message || 'claim_failed' };
     }
   }, [applyServerPlayer]);
 

@@ -307,15 +307,63 @@ export const MONTHLY_MISSION_POOL = [
   { id: 'mm_serve_500', desc: 'Serve 500 customers this month', target: 500, stat: 'servedMonth', reward: { gems: 40, coins: 2000 } },
 ];
 
+// 30-day escalating streak calendar — MUST mirror the server table in
+// supabase/functions/_shared/catalog.ts (claim-daily is authoritative; this
+// copy only renders the calendar). Milestones at 7/14/21/30; past day 30 the
+// streak keeps counting but rewards loop days 24..30 (rewardDayForStreak).
 export const DAILY_REWARDS = [
-  { day: 1, coins: 100 },
-  { day: 2, coins: 150 },
-  { day: 3, coins: 200, xp: 30 },
-  { day: 4, gems: 5 },
-  { day: 5, coins: 300, xp: 50 },
-  { day: 6, magicSauce: 'lucky_sauce' },
-  { day: 7, gems: 20, magicSauce: 'golden_tamarind' },
+  { day: 1,  coins: 100 },
+  { day: 2,  coins: 150 },
+  { day: 3,  coins: 200, xp: 30 },
+  { day: 4,  gems: 5 },
+  { day: 5,  coins: 300, xp: 50 },
+  { day: 6,  magicSauce: 'lucky_sauce' },
+  { day: 7,  gems: 25, magicSauce: 'golden_tamarind' },
+  { day: 8,  coins: 500 },
+  { day: 9,  gems: 10 },
+  { day: 10, coins: 750, xp: 75 },
+  { day: 11, magicSauce: 'pepper_fairy' },
+  { day: 12, coins: 1000 },
+  { day: 13, gems: 15 },
+  { day: 14, gems: 40, magicSauce: 'carnival_sauce' },
+  { day: 15, coins: 1500 },
+  { day: 16, gems: 15 },
+  { day: 17, coins: 2000, xp: 100 },
+  { day: 18, magicSauce: 'shadow_beni_spirit' },
+  { day: 19, coins: 3000 },
+  { day: 20, gems: 20 },
+  { day: 21, gems: 60, magicSauce: 'turbo_sauce' },
+  { day: 22, coins: 4000 },
+  { day: 23, gems: 25 },
+  { day: 24, coins: 5000, xp: 150 },
+  { day: 25, gems: 30 },
+  { day: 26, magicSauce: 'ghost_pepper' },
+  { day: 27, coins: 7500 },
+  { day: 28, gems: 40 },
+  { day: 29, coins: 10000 },
+  { day: 30, gems: 100, magicSauce: 'double_trouble' },
 ];
+export const STREAK_LOOP_START = 24;
+export const STREAK_REPAIR_COST = 25;
+export const STREAK_REPAIR_MIN = 3;
+export const STREAK_MILESTONES = [7, 14, 21, 30];
+
+// Which reward-table day a given streak length pays (mirror of the loop math
+// in daily_claim_apply).
+export function rewardDayForStreak(streak) {
+  const s = Math.max(1, Number(streak) || 1);
+  if (s <= DAILY_REWARDS.length) return s;
+  const span = DAILY_REWARDS.length - STREAK_LOOP_START + 1; // 7
+  return STREAK_LOOP_START + ((s - STREAK_LOOP_START) % span);
+}
+
+// Trinidad calendar day (America/Port_of_Spain is fixed UTC-4, no DST) as an
+// ISO date string, optionally offset by whole days — the day the streak and
+// boards roll on. Mirrors the server's `now() at time zone 'America/Port_of_Spain'`.
+export function trinidadDayStr(offsetDays = 0) {
+  const d = new Date(Date.now() - 4 * 3600 * 1000 + offsetDays * 86400000);
+  return d.toISOString().slice(0, 10);
+}
 
 // Mystery Sauce Pack drop odds, per sauce (each of the 3 rolls independently).
 // MUST mirror the server's rarity buckets in
