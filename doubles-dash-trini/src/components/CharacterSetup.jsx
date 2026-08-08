@@ -21,8 +21,13 @@ export default function CharacterSetup() {
     setSaving(true);
     setNameError('');
     const ok = await completeSetup(trimmed, gender);
-    if (!ok) {
-      setNameError('That vendor name is taken — try another.');
+    if (ok !== true) {
+      setNameError(
+        ok === 'not_allowed' ? 'That name isn’t allowed. Keep it clean, vendor!'
+          : ok === 'too_short' ? 'Give yuh vendor a longer name.'
+          : ok === 'error' ? 'Couldn’t save that name — try again.'
+          : 'That vendor name is taken — try another.'
+      );
       setSaving(false);
       return;
     }

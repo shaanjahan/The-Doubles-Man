@@ -412,19 +412,38 @@ export function usePlayer() {
   // Returns false when the name is taken so the setup screen can ask for
   // another. The RPC check is the friendly layer; the unique index settles
   // any race. Fails open on network errors — the index is the backstop.
+  // Returns true on success, or a reason string ('taken' | 'not_allowed' |
+  // 'too_short' | 'error') so the setup screen can say what actually went
+  // wrong. The DB is the real gate either way: a unique index for collisions
+  // and the display_name guard trigger for banned names — this pre-check only
+  // buys a friendlier message before the write.
   const completeSetup = useCallback(async (name, gender) => {
     try {
-      const { data: available, error } = await supabase.rpc('display_name_available', { p_name: name });
-      if (!error && available === false) return false;
-    } catch { /* fail open — the unique index still protects */ }
+      const { data: check, error } = await supabase.rpc('display_name_check', { p_name: name });
+      if (!error && check && check.ok === false) return check.reason || 'taken';
+    } catch { /* fail open — the index and trigger still protect */ }
     const url = characterUrlByGender(gender);
-    mutate((p) => {
-      p.displayName = name;
-      p.avatarEmoji = url;
-      p.needsSetup = false;
-    });
+    const curr = playerRef.current;
+    if (!curr) return 'error';
+    // Written directly (not via persist) because persist is fire-and-forget and
+    // swallows its error — setup is the one place that must AWAIT the write and
+    // react to a rejection, since the guard trigger and the unique index can
+    // both refuse a name the pre-check let through (e.g. a race).
+    try {
+      await base44.entities.Player.update(curr.id, {
+        displayName: name, avatarEmoji: url, needsSetup: false,
+      });
+    } catch (e) {
+      const msg = String(e?.message || '');
+      if (msg.includes('display_name_not_allowed')) return 'not_allowed';
+      if (msg.includes('players_display_name_unique')) return 'taken';
+      return 'error';
+    }
+    const next = { ...curr, displayName: name, avatarEmoji: url, needsSetup: false };
+    playerRef.current = next;
+    setPlayer(next);
     return true;
-  }, [mutate]);
+  }, []);
 
   return {
     loading, error, player,
