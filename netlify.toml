@@ -27,18 +27,16 @@
   to = "/get"
   status = 302
 
-# Explicit rewrites for /get. Netlify's non-forced rules already yield to real
-# files, but relying on that implicit precedence is exactly how /get would
-# silently fall back into the SPA again (vite preview does precisely that
-# locally). First matching rule wins, so these run before the /* fallback.
+# Explicit rewrite for /get, ahead of the SPA fallback (first match wins) so
+# /get can never silently fall back into the JS app again.
+#
+# The page is a FLAT file (public/get.html), not get/index.html: a directory
+# made Netlify answer /get with a 301 to /get/ before this rule was consulted.
+# A flat file serves /get as a straight 200 — one request, no hop, which is
+# what we want inside an in-app browser.
 [[redirects]]
   from = "/get"
-  to = "/get/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/get/"
-  to = "/get/index.html"
+  to = "/get.html"
   status = 200
 
 # SPA fallback: BrowserRouter routes (e.g. /login, deep links, refreshes) must
