@@ -13,6 +13,17 @@
 # NOT here — they bake into the client bundle at build time. The anon key is a
 # publishable key (RLS-protected), so shipping it to the browser is expected.
 
+# /app: server-side 302 straight to the App Store listing — zero JS, so it
+# works in every in-app browser (Instagram/TikTok/Facebook follow server
+# redirects natively and hand apps.apple.com to the App Store). This is the
+# link to put behind social CTAs; /get remains the pretty landing page.
+# NOTE: must appear BEFORE the SPA fallback — Netlify applies the first match.
+[[redirects]]
+  from = "/app"
+  to = "https://apps.apple.com/app/the-doubles-man/id6794140621"
+  status = 302
+  force = true
+
 # SPA fallback: BrowserRouter routes (e.g. /login, deep links, refreshes) must
 # resolve to index.html rather than 404 on Netlify.
 [[redirects]]

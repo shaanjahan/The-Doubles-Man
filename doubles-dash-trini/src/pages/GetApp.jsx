@@ -10,24 +10,10 @@ import { TriniFlag } from '@/components/game/art/icons';
 // apps mangle or block). Web-only: never linked from inside the game, and the
 // native shell redirects it to /home. Country-neutral store URL so every
 // visitor lands on their own storefront.
-const APP_STORE_URL = 'https://apps.apple.com/app/the-doubles-man/id6794140621';
-// In-app browsers (Instagram, TikTok, Facebook) render apps.apple.com as a web
-// page instead of opening the App Store. The itms-apps:// scheme is passed to
-// the OS and launches the App Store app directly — the standard escape hatch.
-const APP_STORE_SCHEME = 'itms-apps://apps.apple.com/app/the-doubles-man/id6794140621';
-
-function openAppStore(e) {
-  // iPhone/iPad only — that's where in-app browsers swallow apps.apple.com.
-  // Desktop and Android proceed through the normal https link.
-  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-  if (!isIOS) return;
-  e.preventDefault();
-  window.location.href = APP_STORE_SCHEME;
-  // If the scheme was blocked (page still visible), fall back to the web URL.
-  setTimeout(() => {
-    if (!document.hidden) window.location.href = APP_STORE_URL;
-  }, 1500);
-}
+// Same-origin path that Netlify 302s to the App Store listing (netlify.toml).
+// A server-side redirect needs no JS and survives every in-app browser
+// (Instagram/TikTok/Facebook) — schemes and window.location tricks don't.
+const APP_STORE_LINK = '/app';
 
 export default function GetApp() {
   useEffect(() => {
@@ -69,8 +55,7 @@ export default function GetApp() {
       </p>
 
       <a
-        href={APP_STORE_URL}
-        onClick={openAppStore}
+        href={APP_STORE_LINK}
         className="relative mt-8 inline-flex items-center gap-3 bg-white text-black rounded-2xl px-7 py-4 shadow-2xl hover:scale-105 active:scale-95 transition"
       >
         <AppleIcon className="w-8 h-8" color="#000000" />
