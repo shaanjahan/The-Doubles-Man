@@ -41,7 +41,9 @@ function posOf(lat, lng) {
 
 export default function TrinidadMap({ value, onChange, businessTier = 0 }) {
   const current = LOCATIONS.find((l) => l.id === value) || LOCATIONS[0];
-  const backdrop = LOCATION_IMAGES[current.id] || DEFAULT_IMG;
+  // Catalog art wins when a location has its own image (e.g. Chaguanas Market);
+  // otherwise the scenery map above, then San Fernando as the last resort.
+  const backdrop = current.image || LOCATION_IMAGES[current.id] || DEFAULT_IMG;
 
   return (
     <div className="bg-fire-tile rounded-3xl p-3 shadow border border-white/10">

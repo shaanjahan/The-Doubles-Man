@@ -7,6 +7,7 @@ import {
 import { spawnCustomer, classifyServe, challengeRng } from '@/lib/game/engine';
 import { sfx, unlockAudio } from '@/lib/game/useSound';
 import { usePlayerState } from '@/lib/game/PlayerContext';
+import { useSellingLocation } from '@/lib/game/useSellingLocation';
 import { Flame, Play as PlayIcon, Gem, Heart, X, Pause } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -183,7 +184,8 @@ export default function Play() {
   const { player, finalizeRound, completeTutorial, buyRoundStock } = usePlayerState();
   const navigate = useNavigate();
   const [phase, setPhase] = useState('prep');
-  const [locId, setLocId] = useState(0);
+  // Shared with the Hub chip (localStorage-backed) so both always agree.
+  const [locId, setLocId] = useSellingLocation(player);
   const [game, setGame] = useState(null);
   const [outcome, setOutcome] = useState(null);
   const savedRef = useRef(false);
@@ -196,10 +198,6 @@ export default function Play() {
   const [restocking, setRestocking] = useState(false);
   const [nextRestockCost, setNextRestockCost] = useState(0);
   const [stockMsg, setStockMsg] = useState('');
-
-  useEffect(() => {
-    if (player) setLocId(player.currentLocationId || 0);
-  }, [player?.id]);
 
   useEffect(() => {
     if (phase !== 'play' || paused) return;

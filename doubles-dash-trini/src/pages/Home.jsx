@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Play as PlayIcon } from 'lucide-react';
+import { Play as PlayIcon, ChevronDown } from 'lucide-react';
 import { usePlayerState } from '@/lib/game/PlayerContext';
 import { useRefreshHandler } from '@/lib/game/RefreshContext';
 import { BUSINESS_TIERS, LOCATIONS, tierByIndex } from '@/lib/game/catalog';
+import { useSellingLocation } from '@/lib/game/useSellingLocation';
 import DailyLoginModal from '@/components/DailyLoginModal';
 import { Image } from '@/components/ui/image';
 import ProfileSection from '@/components/game/ProfileSection';
 import HowToPlayButton from '@/components/game/HowToPlayButton';
+import LocationPicker from '@/components/game/LocationPicker';
+import SellingSpotPrompt from '@/components/game/SellingSpotPrompt';
 import { IconFlame, IconCrown, IconStorefront, LocationIcon } from '@/components/game/art/icons';
 
 const HUB_BG = '/game/0d9719541_1336D320-FC46-4E41-BD87-2AACAC7E4A74.webp';
@@ -24,6 +27,8 @@ function QuickLink({ to, label, emoji }) {
 export default function Home() {
   const { player, reload } = usePlayerState();
   useRefreshHandler('/home', reload);
+  // Hooks must run before the loading early-return.
+  const [locId, setLocId] = useSellingLocation(player);
   if (!player) return <div className="px-4 pt-6 text-white/60">Loading hub…</div>;
 
   const tier = tierByIndex(player.businessTier);
@@ -32,7 +37,7 @@ export default function Home() {
   const curTierLvl = TIER_LEVELS[player.businessTier] || 1;
   const nextTierLvl = TIER_LEVELS[Math.min(TIER_LEVELS.length - 1, player.businessTier + 1)] || 60;
   const tierPct = nextTier ? Math.min(100, Math.max(0, ((player.level - curTierLvl) / (nextTierLvl - curTierLvl)) * 100)) : 100;
-  const loc = LOCATIONS[player.currentLocationId] || LOCATIONS[0];
+  const loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
 
   return (
     <div className="relative max-w-2xl mx-auto px-3 pt-3 pb-6 space-y-4">
@@ -46,6 +51,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/65 to-black/80" />
       </div>
       <DailyLoginModal />
+      <SellingSpotPrompt player={player} locId={locId} setLocId={setLocId} />
 
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl bg-tropic-carnival text-white p-5 shadow-xl animate-[pop-in_0.55s_ease-out_both]">
@@ -64,7 +70,21 @@ export default function Home() {
           <h1 className="text-2xl font-extrabold mt-0.5">Aye, {player.displayName}!</h1>
           <p className="text-white/85 text-sm mt-1">The streets are hungry. Time to make doubles.</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
-            <span className="bg-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1"><LocationIcon id={player.currentLocationId} size={13} /> {loc.name}</span>
+            <LocationPicker
+              locations={LOCATIONS}
+              businessTier={player.businessTier}
+              value={locId}
+              onChange={setLocId}
+              trigger={
+                <button
+                  type="button"
+                  className="bg-white/20 hover:bg-white/30 rounded-full pl-2.5 pr-2 py-1 inline-flex items-center gap-1 active:scale-95 transition"
+                >
+                  <LocationIcon id={locId} size={13} /> {loc.name}
+                  <ChevronDown size={13} className="opacity-80" />
+                </button>
+              }
+            />
             <span className="bg-white/20 rounded-full px-2.5 py-1">Lvl {player.level}</span>
             <span className="bg-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1"><IconFlame size={13} /> Streak {player.dailyStreak || 0}</span>
           </div>

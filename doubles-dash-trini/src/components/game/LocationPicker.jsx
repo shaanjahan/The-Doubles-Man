@@ -24,7 +24,9 @@ function LocationArt({ location, size = 26, rounded = 'rounded-lg' }) {
   );
 }
 
-export default function LocationPicker({ locations, value, onChange, businessTier = 0 }) {
+// `trigger` lets a caller supply its own opener (e.g. the Hub location chip)
+// instead of the default full-width bar; the sheet itself is identical.
+export default function LocationPicker({ locations, value, onChange, businessTier = 0, trigger }) {
   const [open, setOpen] = React.useState(false);
   const unlocked = locations.filter((l) => (l.unlockTier || 0) <= businessTier);
   const current = unlocked.find((l) => l.id === value) || unlocked[0] || locations[0];
@@ -32,17 +34,19 @@ export default function LocationPicker({ locations, value, onChange, businessTie
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          className="mt-1 w-full bg-black/40 rounded-xl border border-white/10 py-2 px-3 text-sm font-semibold text-foreground flex items-center justify-between gap-2 active:scale-[0.99] transition"
-        >
-          <span className="flex items-center gap-2 min-w-0">
-            <LocationArt location={current} size={17} rounded="rounded" />
-            <span className="truncate">{current.name}</span>
-            <span className="text-tropic-gold font-bold flex items-center gap-0.5">({current.baseReward}<CoinIcon className="w-3.5 h-3.5 inline-block" />)</span>
-          </span>
-          <ChevronDown size={16} className="text-muted-foreground shrink-0" />
-        </button>
+        {trigger || (
+          <button
+            type="button"
+            className="mt-1 w-full bg-black/40 rounded-xl border border-white/10 py-2 px-3 text-sm font-semibold text-foreground flex items-center justify-between gap-2 active:scale-[0.99] transition"
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <LocationArt location={current} size={17} rounded="rounded" />
+              <span className="truncate">{current.name}</span>
+              <span className="text-tropic-gold font-bold flex items-center gap-0.5">({current.baseReward}<CoinIcon className="w-3.5 h-3.5 inline-block" />)</span>
+            </span>
+            <ChevronDown size={16} className="text-muted-foreground shrink-0" />
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-md w-[calc(100vw-1.5rem)] p-0 gap-0 rounded-3xl overflow-hidden border-white/10 bg-zinc-900">
         <DialogHeader className="px-4 pt-4 pb-2">
