@@ -17,8 +17,10 @@ const APP_STORE_URL = 'https://apps.apple.com/app/the-doubles-man/id6794140621';
 const APP_STORE_SCHEME = 'itms-apps://apps.apple.com/app/the-doubles-man/id6794140621';
 
 function openAppStore(e) {
-  const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
-  if (!isApple) return; // Android/desktop: let the normal https link proceed
+  // iPhone/iPad only — that's where in-app browsers swallow apps.apple.com.
+  // Desktop and Android proceed through the normal https link.
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (!isIOS) return;
   e.preventDefault();
   window.location.href = APP_STORE_SCHEME;
   // If the scheme was blocked (page still visible), fall back to the web URL.
