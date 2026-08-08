@@ -13,11 +13,33 @@
 # NOT here — they bake into the client bundle at build time. The anon key is a
 # publishable key (RLS-protected), so shipping it to the browser is expected.
 
-# /app is the SPA's smart redirect page (AppRedirect.jsx): device detection,
-# attribution tracking, and a one-tap itms-appss:// App Store open — a server
-# 302 to apps.apple.com was tried first but in-app browsers render the listing
-# as a dead web page instead of opening the store, so the handoff must happen
-# with the itms scheme from the page. Served by the SPA fallback below.
+# /get is served from the STATIC file public/get/index.html (copied to
+# dist/get/index.html at build). Netlify only applies a non-forced redirect when
+# no real file exists at the path, so the SPA fallback below never shadows it —
+# that is what keeps /get out of the JS-rendered app entirely.
+#
+# /app was previously an SPA page that auto-redirected via an itms-appss://
+# scheme on load; in-app browsers (Instagram/Facebook) block custom schemes and
+# were left on a blank page. Links to /app are already published, so it now
+# lands on the same static page instead. 302 (not 301) so it stays re-pointable.
+[[redirects]]
+  from = "/app"
+  to = "/get"
+  status = 302
+
+# Explicit rewrites for /get. Netlify's non-forced rules already yield to real
+# files, but relying on that implicit precedence is exactly how /get would
+# silently fall back into the SPA again (vite preview does precisely that
+# locally). First matching rule wins, so these run before the /* fallback.
+[[redirects]]
+  from = "/get"
+  to = "/get/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/get/"
+  to = "/get/index.html"
+  status = 200
 
 # SPA fallback: BrowserRouter routes (e.g. /login, deep links, refreshes) must
 # resolve to index.html rather than 404 on Netlify.
