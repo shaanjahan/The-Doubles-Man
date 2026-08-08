@@ -101,7 +101,7 @@ export function businessPerRoundBonus(businesses = []) {
 
 export const LOCATIONS = [
   { id: 0, name: 'San Fernando',            emoji: '🏙️', unlockTier: 0, baseReward: 6,  arriveSec: 4.4 },
-  { id: 1, name: 'Chaguanas Market',         emoji: '🛍️', unlockTier: 1, baseReward: 8,  arriveSec: 4.0 },
+  { id: 1, name: 'Chaguanas Market',         emoji: '🛍️', image: '/game/location_chaguanas_market.webp', unlockTier: 1, baseReward: 8,  arriveSec: 4.0 },
   { id: 2, name: 'Port of Spain',            emoji: '🌆', unlockTier: 2, baseReward: 11, arriveSec: 3.8 },
   { id: 3, name: 'Maracas Beach',            emoji: '🏖️', unlockTier: 3, baseReward: 15, arriveSec: 3.6 },
   { id: 4, name: 'Debe',                    emoji: '🛺', unlockTier: 4, baseReward: 20, arriveSec: 3.4 },

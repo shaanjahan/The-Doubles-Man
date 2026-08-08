@@ -5,8 +5,24 @@ import React from 'react';
 import { MapPin, Check, ChevronDown, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CoinIcon from '@/components/CoinIcon';
+import { Image } from '@/components/ui/image';
 import { LocationIcon } from '@/components/game/art/icons';
 import { locationUnlockLevel } from '@/lib/game/catalog';
+
+// Location art: scenic image thumbnail when the location has one (drawn icon
+// otherwise). `size` matches the LocationIcon footprint it replaces.
+function LocationArt({ location, size = 26, rounded = 'rounded-lg' }) {
+  if (!location?.image) return <LocationIcon id={location.id} size={size} />;
+  return (
+    <Image
+      src={location.image}
+      alt={location.name}
+      fittingType="cover"
+      className={`${rounded} object-cover shrink-0`}
+      style={{ width: size * 1.4, height: size }}
+    />
+  );
+}
 
 export default function LocationPicker({ locations, value, onChange, businessTier = 0 }) {
   const [open, setOpen] = React.useState(false);
@@ -21,7 +37,7 @@ export default function LocationPicker({ locations, value, onChange, businessTie
           className="mt-1 w-full bg-black/40 rounded-xl border border-white/10 py-2 px-3 text-sm font-semibold text-foreground flex items-center justify-between gap-2 active:scale-[0.99] transition"
         >
           <span className="flex items-center gap-2 min-w-0">
-            <LocationIcon id={current.id} size={17} />
+            <LocationArt location={current} size={17} rounded="rounded" />
             <span className="truncate">{current.name}</span>
             <span className="text-tropic-gold font-bold flex items-center gap-0.5">({current.baseReward}<CoinIcon className="w-3.5 h-3.5 inline-block" />)</span>
           </span>
@@ -49,7 +65,7 @@ export default function LocationPicker({ locations, value, onChange, businessTie
                     : 'bg-white/10 text-zinc-100 hover:bg-white/20 border border-white/10'
                 }`}
               >
-                <span className={locked ? 'opacity-40 grayscale' : ''}><LocationIcon id={l.id} size={26} /></span>
+                <span className={locked ? 'opacity-40 grayscale' : ''}><LocationArt location={l} size={30} /></span>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold truncate flex items-center gap-1">
                     <MapPin size={12} /> {l.name}
