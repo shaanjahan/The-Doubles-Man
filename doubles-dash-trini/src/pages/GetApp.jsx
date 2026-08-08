@@ -10,10 +10,14 @@ import { TriniFlag } from '@/components/game/art/icons';
 // apps mangle or block). Web-only: never linked from inside the game, and the
 // native shell redirects it to /home. Country-neutral store URL so every
 // visitor lands on their own storefront.
-// Same-origin path that Netlify 302s to the App Store listing (netlify.toml).
-// A server-side redirect needs no JS and survives every in-app browser
-// (Instagram/TikTok/Facebook) — schemes and window.location tricks don't.
-const APP_STORE_LINK = '/app';
+import { APP_STORE_HTTPS, detectPlatform, trackLinkHit, openAppStore } from '@/lib/appStoreLink';
+
+function handleDownload(e) {
+  trackLinkHit('get', detectPlatform());
+  if (detectPlatform() !== 'ios') return; // desktop/Android: follow the https link
+  e.preventDefault();
+  openAppStore(); // one-tap itms open with https fallback
+}
 
 export default function GetApp() {
   useEffect(() => {
@@ -55,7 +59,8 @@ export default function GetApp() {
       </p>
 
       <a
-        href={APP_STORE_LINK}
+        href={APP_STORE_HTTPS}
+        onClick={handleDownload}
         className="relative mt-8 inline-flex items-center gap-3 bg-white text-black rounded-2xl px-7 py-4 shadow-2xl hover:scale-105 active:scale-95 transition"
       >
         <AppleIcon className="w-8 h-8" color="#000000" />

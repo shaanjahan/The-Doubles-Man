@@ -18,6 +18,7 @@ import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
 import Landing from './pages/Landing';
 import GetApp from './pages/GetApp';
+import AppRedirect from './pages/AppRedirect';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import SupportPage from './pages/SupportPage';
@@ -67,9 +68,11 @@ const AuthenticatedApp = () => {
           (or login) immediately — a website-style first screen is the classic
           App Review 4.2 "web wrapper" trigger. Web visitors still get Landing. */}
       <Route path="/" element={window.NativeIAP?.available ? <Navigate to="/home" replace /> : <Landing />} />
-      {/* Social download link (Instagram/TikTok bio) — web-only; the native
-          shell bounces it to /home so app users never see it. */}
+      {/* Social download links (Instagram/TikTok bio) — web-only; the native
+          shell bounces both to /home so app users never see them. /app is the
+          smart one-tap redirect with attribution; /get the branded landing. */}
       <Route path="/get" element={<GetApp />} />
+      <Route path="/app" element={<AppRedirect />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/support" element={<SupportPage />} />
